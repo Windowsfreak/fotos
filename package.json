@@ -1,0 +1,17 @@
+{
+  "name": "fotos",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "javascript-flex-images": "^1.0.2",
+    "minireset.css": "0.0.3",
+    "photoswipe": "^4.1.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
