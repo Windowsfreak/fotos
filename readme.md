@@ -1,3 +1,17 @@
+# Fotos
+
+The goal of this project was to publish a 3+ Terabyte large photo archive
+with a million JPG files on an online server with just 25 GB drive space.
+To achieve this, all images were compressed to 800x800 pixels and 200x200
+pixels and with a compression that achieves file sizes of &lt;50kb and
+&lt;5kb respectively. The folder structure shall remain to allow easy
+updating and amending of new albums to the existing structure.
+
+On an average computer, resizing an image takes a fraction of a second.
+Measurements have been taken to speed this process up and achieve the
+second goal: Accessing galleries should only consume small data quotas
+and very fast to load and use.
+
 ## Image viewer
 
 The image viewer reads JSON files from the folder and generates a
@@ -5,7 +19,7 @@ mobile-friendly preview page. Folder navigation will also be
 extracted from the JSON file. Beware that this plain implementation
 neither contains a password protection nor any dynamic authentication.
 If you want a password protection, use the HTTP Basic Authentication
-together with a HTTPS-only webserver.
+together with a HTTPS-only web server.
 
 **To prevent lags or slow UI response on mobile devices:**
 
@@ -26,7 +40,7 @@ together with a HTTPS-only webserver.
 - The pure HTML/JS version takes much time to show more than
   1.000 pictures
 
-##Preview files generator
+## Preview files generator
 
 The preview files generator walks through a source directory tree,
 mirrors the folder structure to the destination path, and for each
@@ -37,6 +51,9 @@ it has stopped. The generator will also place an index.json file
 into each directory that contains the date taken, the dimensions
 and the name of each file.
 
+The commands executed are designed for Windows, but it is possible
+to change them to work on Linux as well.
+
 **Dependencies:**
 
 - ImageMagick
@@ -45,7 +62,7 @@ and the name of each file.
 
 - PHP < 7.1 does not support Non-ASCII7-Characters very well.
   Using them, the shell scripts won't find the files
-  that were retrieved using scandir.
+  that were retrieved using `scandir`.
 - Images that use an EXIF Orientation are not properly rotated.
   Preview images and dimensions are based on the data structure
 
@@ -55,3 +72,4 @@ and the name of each file.
   enough information is already present.
 - Different expiry dates for images and folders
 - Generate .webp instead of .jpg files
+- Multi-Threading
