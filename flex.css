@@ -1,4 +1,15 @@
 .flex-images { overflow: hidden; }
 .item { float: left; box-sizing: content-box; overflow: hidden; position: relative;  }
 .item img { display: block; width: auto; height: 100%; }
-.over { position: absolute; bottom: 0; left: 0; padding: 4px 4px; font-size: 13px; color: #fff; background: #000; background: rgba(0,0,0,.3); }
+.item:after {
+    content: attr(data-name);
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    padding: 4px 4px;
+    font-size: 13px;
+    color: #fff;
+    background: #000;
+    background: rgba(0,0,0,.3);
+}

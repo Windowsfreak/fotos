@@ -29,11 +29,23 @@
         }
         #folders a {
             font-size: 0.7em;
-            padding: 10px 10px;
             display: block;
             width: 100%;
-            max-width: 400px;
+            max-width: 300px;
+            padding: 10px 10px;
             background-color: #ccf;
+        }
+        #folders a div {
+            border-radius: 10px;
+            text-shadow:
+                -1px -1px 0 rgba(255, 255, 255, .5),
+                1px -1px 0 rgba(255, 255, 255, .5),
+                -1px 1px 0 rgba(255, 255, 255, .5),
+                1px 1px 0 rgba(255, 255, 255, .5);
+        }
+        #folders span {
+            font-size: 0.5em;
+            display: block;
         }
         .no {
             background-color: #f88 !important;
@@ -53,77 +65,89 @@
 <script src="./node_modules/photoswipe/dist/photoswipe.min.js"></script>
 <script src="./node_modules/photoswipe/dist/photoswipe-ui-default.min.js"></script>
 <script>
+    const root = './';
     function goto(path) {
-        var target = event ? event.target : {};
+        const target = event ? event.target : {};
         if (!path) {
             path = '.';
         }
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', path + '/index.json');
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', encodeURI(root + path) + '/index.json');
+        console.log(path);
         xhr.onload = function () {
             if (this.status >= 200 && this.status < 300) {
                 try {
-                    load(JSON.parse(xhr.response));
+                    load(path, JSON.parse(xhr.response));
+                    const x = location.hash.split('&');
+                    x[0] = encodeURIComponent(path);
+                    location.hash = x.join('&');
                 } catch (e) {
+                    console.log(e);
                     target.className = 'no';
                 }
             } else {
                 xhr.onerror();
             }
         };
-        xhr.onerror = function() {
-            target.className = 'no';
-        };
+        xhr.onerror = () => target.className = 'no';
         xhr.send();
     }
-    function load(json) {
-        setBreadcrumbs(json.file, json.date);
-        setFolders(json.file, json.folders);
-        setImages(json.file, json.images);
-        setItems(json.file, json.images);
+    function load(path, json) {
+        setBreadcrumbs(path, `${dateStr(json.oldest)} - ${dateStr(json.newest)}`, json.c);
+        setFolders(path, json.subs || []);
+        setImages(path, json.imgs || []);
         new flexImages({selector: '#images', rowHeight: 200});
     }
-    function setBreadcrumbs(file, date) {
-        var str = '<a onclick="goto()">Fotos</a>';
-        var path = '';
+    function drawBox(attrs, data, text) {
+        const g=a=>[0,6,12,18].map(o=>a.slice(o,o+6)),
+            c=g(data),b=n=>`background:linear-gradient(to right,#${c[n]},#${c[n+1]})`,m='mask:linear-gradient(to bottom,transparent,#fff)'
+        return `<a ${attrs} style="${b(0)};position:relative"><div style="position:absolute;top:0;left:0;width:100%;height:100%;${b(2)};-webkit-${m};${m}"></div><div style="position:relative">${text}</div></a>`;
+    }
+    const options = {timeZone: 'UTC', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'}
+    const dateStr = date => new Date(date).toLocaleString('de-DE', options);
+    function setBreadcrumbs(file, date, c) {
+        let str = '';
+        let path = '';
         if (file) {
-            file.split('/').forEach(function(folder) {
+            file.split('/').forEach(folder => {
                 path += folder;
-                str += '<a onclick="goto(\'' + path + '\')" href="#">' + folder + '</a>';
+                if (path == file) {
+                    str += drawBox(`onclick="goto('${path}')" href="#"`, c, folder);
+                } else {
+                    str += `<a onclick="goto('${path}')" href="#">${folder}</a>`;
+                }
                 path += '/';
             });
         }
-        document.getElementById('breadcrumbs').innerHTML = str + ' ' + date;
+        document.getElementById('breadcrumbs').innerHTML = `${str} ${date}`;
     }
     function setFolders(file, folders) {
         var str = '';
-        folders.forEach(function(folder) {
-            str += '<a onclick="goto(\'' + (file ? file + '/' : '') + folder + '\')" href="#">' + folder + '</a>';
+        folders.forEach(folder => {
+            str += drawBox(`onclick="goto('${file ? file + '/' : ''}${folder.n}')" href="#"`, folder.c, folder.n +
+                (folder.images || folder.files ? `<span>${folder.images || 0} Foto${folder.images !== 1 ? 's' : ''}, ${folder.files || 0} Datei{folder.files !== 1 ? 'en' : ''}</span>` : '') +
+                (folder.folders ? `<span>${folder.totalImages || 0} Fotos in ${folder.folders || 0} Ordnern</span>` : '')
+            );
         });
         document.getElementById('folders').innerHTML = str;
     }
     function setImages(file, images) {
         var str = '';
-        images.forEach(function(image) {
-            str += '<a class="item" href="./' + file + '/' + image.file + '.small.jpg"\
-            data-sub-html="' + image.name + ' - ' + image.date + ' - ' + image.width + ' x ' + image.height + '"\
-            data-w="' + image.width + '"\
-            data-h="' + image.height + '"><img src="./' + file + '/' + image.file + '.thumb.jpg"><div class="over">' + image.name + '</div></a>\n';
-        });
-        document.getElementById('images').innerHTML = str;
-    }
-    function setItems(file, images) {
         var imgs = [];
-        images.forEach(function(image) {
+        images.forEach(image => {
+            str += `<a class="item" href="{$root}${file}/${image.n}.h.webp"\
+            data-w="${image.w}"\
+            data-h="${image.h}" data-name="${image.n}"><img src="{$root}${file}/${image.n}.s.webp"></a>\n`;
             imgs.push({
-                src: './' + file + '/' + image.file + '.small.jpg',
-                w: image.width,
-                h: image.height,
-                title: image.name + ' - ' + image.date + ' - ' + image.width + ' x ' + image.height,
-                msrc: './' + file + '/' + image.file + '.thumb.jpg'
+                src: `{$root}${file}/${image.n}.h.webp`,
+                w: image.w,
+                h: image.h,
+                title: `${image.n} - ${dateStr(image.d)} - ${image.w} x ${image.h}`,
+                msrc: `{$root}${file}/${image.n}.s.webp`
             });
         });
         window.items = imgs;
+        document.getElementById('images').innerHTML = str;
     }
     document.getElementById('images').onclick = function(event) {
         var elm = event.target;
@@ -147,7 +171,7 @@
         gallery.init();
         return false;
     };
-    goto();
+    goto(decodeURIComponent(location.hash.split('&')[0].replace('#', '')));
 </script>
 
 <!-- Root element of PhotoSwipe. Must have class pswp. -->

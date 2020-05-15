@@ -2,9 +2,9 @@
 
 The goal of this project was to publish a 3+ Terabyte large photo archive
 with a million JPG files on an online server with just 25 GB drive space.
-To achieve this, all images were compressed to 800x800 pixels and 200x200
-pixels and with a compression that achieves file sizes of &lt;50kb and
-&lt;5kb respectively. The folder structure shall remain to allow easy
+To achieve this, all images were compressed to 2048x2048 pixels and 400x200
+pixels and with a compression that achieves file sizes of &lt;150kb and
+&lt;2kb respectively. The folder structure shall remain to allow easy
 updating and amending of new albums to the existing structure.
 
 On an average computer, resizing an image takes a fraction of a second.
@@ -33,43 +33,30 @@ together with a HTTPS-only web server.
 - javascript-flex-images
 - photoswipe
 
-**Known bugs**
-
-- The PHP version will not show a proper error message when a
-  folder doesn't contain a JSON file
-- The pure HTML/JS version takes much time to show more than
-  1.000 pictures
-
 ## Preview files generator
 
 The preview files generator walks through a source directory tree,
 mirrors the folder structure to the destination path, and for each
-.jpg file it encounters, a .jpg.thumb.jpg and a .jpg.small.jpg is
-generated. A SQL database is used to keep track of the progress,
-so when an error or timeout occurs, the script can continue where
-it has stopped. The generator will also place an index.json file
-into each directory that contains the date taken, the dimensions
-and the name of each file.
+pho.to file it encounters, a pho.to.h.webp and a pho.to.s.webp is
+generated. The generator will place an index.json file into each
+directory that contains the date taken, the dimensions and the name
+of each file. GPS coordinates and averaged edge colors are generated.
 
-The commands executed are designed for Windows, but it is possible
-to change them to work on Linux as well.
+This script can start where it had left off and will read existing
+index.json files and thumbnails and check their modify dates.
 
 **Dependencies:**
 
-- ImageMagick
+- cgo (needs to be enabled)
+- dcraw
+- exiftool
+- ffmpeg
+- golang 1.14.3
+- all the other letters in the alphabet
 
-**Known bugs:**
+**Run:**
 
-- PHP < 7.1 does not support Non-ASCII7-Characters very well.
-  Using them, the shell scripts won't find the files
-  that were retrieved using `scandir`.
-- Images that use an EXIF Orientation are not properly rotated.
-  Preview images and dimensions are based on the data structure
+- Compile with `./go build`
+- Run `./fotos --help`.
 
-**Possible Improvements:**
-
-- Read back data from JSON to prevent identifying files where
-  enough information is already present.
-- Different expiry dates for images and folders
-- Generate .webp instead of .jpg files
-- Multi-Threading
+> ***<span style="color:red !important">This tool can delete folders and files so carefully check your program arguments</span>***
