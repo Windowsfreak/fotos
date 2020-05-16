@@ -156,8 +156,8 @@ func Run(inFile string, outFile string, fileInfo os.FileInfo) (Img, error) {
 		return img, fmt.Errorf("encode image \"%v.h.webp\" failed: %w", outFile, err)
 	}
 	_ = os.Chtimes(outFile+".h.webp", mod, mod)
-	large = nil
 	small := Thumb(large, 400, 200)
+	large = nil
 	if err := EncodeWebP(small, outFile+".s.webp", 20); err != nil {
 		return img, fmt.Errorf("encode image \"%v.s.webp\" failed: %w", outFile, err)
 	}
