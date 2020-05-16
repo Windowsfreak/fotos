@@ -135,15 +135,15 @@
         var str = '';
         var imgs = [];
         images.forEach(image => {
-            str += `<a class="item" href="{$root}${file}/${image.n}.h.webp"\
+            str += `<a class="item" href="${root}${file}/${image.n}.h.webp"\
             data-w="${image.w}"\
-            data-h="${image.h}" data-name="${image.n}"><img src="{$root}${file}/${image.n}.s.webp"></a>\n`;
+            data-h="${image.h}" data-name="${image.n}"><img src="${root}${file}/${image.n}.s.webp"></a>\n`;
             imgs.push({
-                src: `{$root}${file}/${image.n}.h.webp`,
+                src: `${root}${file}/${image.n}.h.webp`,
                 w: image.w,
                 h: image.h,
                 title: `${image.n} - ${dateStr(image.d)} - ${image.w} x ${image.h}`,
-                msrc: `{$root}${file}/${image.n}.s.webp`
+                msrc: `${root}${file}/${image.n}.s.webp`
             });
         });
         window.items = imgs;
