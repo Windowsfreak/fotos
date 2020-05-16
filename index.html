@@ -94,7 +94,7 @@
         xhr.send();
     }
     function load(path, json) {
-        setBreadcrumbs(path, `${dateStr(json.oldest)} - ${dateStr(json.newest)}`, json.c);
+        setBreadcrumbs(path, `${dateRange(json.oldest, json.newest)}`, json.c);
         setFolders(path, json.subs || []);
         setImages(path, json.imgs || []);
         new flexImages({selector: '#images', rowHeight: 200});
@@ -104,8 +104,33 @@
             c=g(data),b=n=>`background:linear-gradient(to right,#${c[n]},#${c[n+1]})`,m='mask:linear-gradient(to bottom,transparent,#fff)'
         return `<a ${attrs} style="${b(0)};position:relative"><div style="position:absolute;top:0;left:0;width:100%;height:100%;${b(2)};-webkit-${m};${m}"></div><div style="position:relative">${text}</div></a>`;
     }
-    const options = {timeZone: 'UTC', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'}
-    const dateStr = date => new Date(date).toLocaleString('de-DE', options);
+    const utc = {timeZone: 'UTC'}
+    const day = {...utc, day: '2-digit'}
+    const withMonth = {...day, month: '2-digit'}
+    const longMonth = {...utc, month: 'long', year: 'numeric'}
+    const fullDate = {...withMonth, year: 'numeric'};
+    const time = {...utc, hour: '2-digit', minute: '2-digit', second: '2-digit'}
+    const fullString = {...fullDate, ...time}
+    const dateRange = (from, to) => {
+        from = new Date(from);
+        to = new Date(to);
+        if (from.getUTCFullYear() === to.getUTCFullYear()) {
+            if (from.getUTCMonth() === to.getUTCMonth()) {
+                if (from.getUTCDate() === to.getUTCDate()) {
+                    return from.toLocaleString('de-DE', fullString) + ' - ' +
+                        to.toLocaleTimeString('de-DE', time);
+                }
+                return from.toLocaleDateString('de-DE', day) + '. - ' +
+                    to.toLocaleDateString('de-DE', day) + '. ' +
+                    from.toLocaleDateString('de-DE', longMonth);
+            }
+            return from.toLocaleDateString('de-DE', withMonth) + ' - ' +
+                to.toLocaleDateString('de-DE', fullDate);
+        }
+        return from.toLocaleDateString('de-DE', fullDate) + ' - ' +
+            to.toLocaleDateString('de-DE', fullDate);
+    }
+    const dateStr = date => new Date(date).toLocaleString('de-DE', fullString);
     function setBreadcrumbs(file, date, c) {
         let str = '';
         let path = '';
@@ -133,7 +158,7 @@
             str += drawBox(`onclick="goto('${file ? file + '/' : ''}${folder.n}')" href="#"`, folder.c, folder.n +
                 i_str +
                 (folder.folders ? `<span>${folder.totalImages ? plural(folder.totalImages, 'Foto', 's') + ' in ' + plural(folder.folders, 'Ordner', 'n') : `enthält ${folder.folders} Ordner`}</span>` : '') +
-                (folder.newest !== '0001-01-01T00:00:00Z' ? `<span>${dateStr(folder.oldest)} - ${dateStr(folder.newest)}</span>` : '')
+                (folder.newest !== '0001-01-01T00:00:00Z' ? `<span>${dateRange(folder.oldest, folder.newest)}</span>` : '')
             );
         });
         document.getElementById('folders').innerHTML = str;
