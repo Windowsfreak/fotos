@@ -1,6 +1,6 @@
 .flex-images { overflow: hidden; }
 .item { float: left; box-sizing: content-box; overflow: hidden; position: relative;  }
-.item img { display: block; width: auto; max-height: 100%; }
+.item img { display: block; width: 100%; max-height: 100%; }
 .item:after {
     content: attr(data-name);
     display: block;
