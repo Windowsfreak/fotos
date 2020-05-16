@@ -133,7 +133,7 @@
             str += drawBox(`onclick="goto('${file ? file + '/' : ''}${folder.n}')" href="#"`, folder.c, folder.n +
                 i_str +
                 (folder.folders ? `<span>${folder.totalImages ? plural(folder.totalImages, 'Foto', 's') + ' in ' + plural(folder.folders, 'Ordner', 'n') : `enthält ${folder.folders} Ordner`}</span>` : '') +
-                (folder.newest !== '0001-01-01T00:00:00Z' ? `<span>${dateStr(folder.oldest)} - ${dateStr(folder.newest)}` : '')
+                (folder.newest !== '0001-01-01T00:00:00Z' ? `<span>${dateStr(folder.oldest)} - ${dateStr(folder.newest)}</span>` : '')
             );
         });
         document.getElementById('folders').innerHTML = str;
