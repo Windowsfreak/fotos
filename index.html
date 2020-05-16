@@ -67,14 +67,14 @@
 <script src="./node_modules/photoswipe/dist/photoswipe-ui-default.min.js"></script>
 <script>
     const root = './';
-    fixPath = path => path.replace('#', '%23');
+    fixPath = path => encodeURI(path.replace('#', '%23'));
     function goto(path) {
         const target = event ? event.target : {};
         if (!path) {
             path = '.';
         }
         const xhr = new XMLHttpRequest();
-        xhr.open('GET', fixPath(encodeURI(root + path)) + '/index.json');
+        xhr.open('GET', fixPath(root + path) + '/index.json');
         xhr.onload = function () {
             if (this.status >= 200 && this.status < 300) {
                 try {
