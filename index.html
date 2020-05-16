@@ -135,9 +135,9 @@
         var str = '';
         var imgs = [];
         images.forEach(image => {
-            str += `<a class="item" href="${root}${file}/${image.n}.h.webp"\
+            str += drawBox(`class="item" href="${root}${file}/${image.n}.h.webp"\
             data-w="${image.w}"\
-            data-h="${image.h}" data-name="${image.n}"><img src="${root}${file}/${image.n}.s.webp"></a>\n`;
+            data-h="${image.h}" data-name="${image.n}"`, image.c, `<img src="${root}${file}/${image.n}.s.webp">`);
             imgs.push({
                 src: `${root}${file}/${image.n}.h.webp`,
                 w: image.w,
