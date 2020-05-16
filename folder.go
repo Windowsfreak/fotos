@@ -65,14 +65,14 @@ func Walk(name string, folder string) (Dir, Corners, error) {
 		return myDir, Corners{}, fmt.Errorf("could not list contents of folder \"%v\": %w", myInFolder, err)
 	}
 	oldDir, _ := getInfo(folder)
-	corners, err = WalkSubdirectories(files, folder, oldDir.Subs, myOutFolder, myDir, corners)
+	corners, err = WalkSubdirectories(files, folder, oldDir.Subs, myOutFolder, &myDir, corners)
 	if err != nil {
 		return myDir, Corners{}, err
 	}
 	stats.CurrentFolder = myInFolder
 	stats.CurrentFolderFiles = len(files)
 	stats.CurrentFolderProgress = 0
-	corners = WalkFiles(files, oldDir.Imgs, myInFolder, myOutFolder, myDir, corners)
+	corners = WalkFiles(files, oldDir.Imgs, myInFolder, myOutFolder, &myDir, corners)
 	newDir := myDir.MakeOld()
 	for k := range oldDir.Subs {
 		if strings.ReplaceAll(k, "/", "") == "" || strings.Contains(k, "/") {
@@ -110,7 +110,7 @@ func Walk(name string, folder string) (Dir, Corners, error) {
 	return myDir, myCorners, err
 }
 
-func WalkFiles(files []os.FileInfo, oldImgs map[string]Img, myInFolder string, myOutFolder string, myDir Dir, corners []Corners) []Corners {
+func WalkFiles(files []os.FileInfo, oldImgs map[string]Img, myInFolder string, myOutFolder string, myDir *Dir, corners []Corners) []Corners {
 	var wg sync.WaitGroup
 	for _, f := range files {
 		name := norm.NFC.String(f.Name())
@@ -166,7 +166,7 @@ func WalkFiles(files []os.FileInfo, oldImgs map[string]Img, myInFolder string, m
 	return corners
 }
 
-func WalkSubdirectories(files []os.FileInfo, folder string, oldSubs map[string]MinDir, myOutFolder string, myDir Dir, corners []Corners) ([]Corners, error) {
+func WalkSubdirectories(files []os.FileInfo, folder string, oldSubs map[string]MinDir, myOutFolder string, myDir *Dir, corners []Corners) ([]Corners, error) {
 	for _, f := range files {
 		if f.IsDir() {
 			if f.Name()[0] == '.' {
