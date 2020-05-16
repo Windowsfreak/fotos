@@ -7,12 +7,16 @@
     <link rel="stylesheet" href="./node_modules/minireset.css/minireset.min.css">
     <link rel="stylesheet" href="./flex.css">
     <style>
+        body {
+            background-color: #000;
+            color: #fff;
+        }
         h2 {
             font-size: 2em;
         }
         h2 a {
             display: inline-block;
-            border: 1px solid black;
+            border: 1px solid rgba(255,255,255,.3);
             border-radius: 10px;
             padding: 5px 10px;
             text-decoration: none;
@@ -37,11 +41,8 @@
         }
         h2 a div {
             border-radius: 10px;
-            text-shadow:
-                -1px -1px 0 rgba(255, 255, 255, .5),
-                1px -1px 0 rgba(255, 255, 255, .5),
-                -1px 1px 0 rgba(255, 255, 255, .5),
-                1px 1px 0 rgba(255, 255, 255, .5);
+            text-shadow: 0 1px 4px #000, 0 1px 8px #000;
+            color: #fff;
         }
         #folders span {
             font-size: 0.5em;
@@ -121,12 +122,17 @@
         }
         document.getElementById('breadcrumbs').innerHTML = `${str} ${date}`;
     }
+    plural = (x, sg, pl) => `${x || 0} ${sg}` + (x !== 1 ? pl : '');
     function setFolders(file, folders) {
         var str = '';
         folders.forEach(folder => {
+            const i = [];
+            folder.images && i.push(plural(folder.images, 'Foto', 's'))
+            folder.files && i.push(plural(folder.files, 'Datei', 'en'))
+            const i_str = i.length ? '<span>' + i.join(', ') + '</span>' : ''
             str += drawBox(`onclick="goto('${file ? file + '/' : ''}${folder.n}')" href="#"`, folder.c, folder.n +
-                (folder.images || folder.files ? `<span>${folder.images || 0} Foto${folder.images !== 1 ? 's' : ''}, ${folder.files || 0} Datei${folder.files !== 1 ? 'en' : ''}</span>` : '') +
-                (folder.folders ? `<span>${folder.totalImages || 0} Fotos in ${folder.folders || 0} Ordnern</span>` : '')
+                i_str +
+                (folder.folders ? `<span>${folder.totalImages ? plural(folder.totalImages, 'Foto', 's') + ' in ' + plural(folder.folders, 'Ordner', 'n') : `enthält ${folder.folders} Ordner`}</span>` : '')
             );
         });
         document.getElementById('folders').innerHTML = str;
