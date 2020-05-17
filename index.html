@@ -74,9 +74,6 @@
     fixPath = path => encodeURI(path.replace('#', '%23'));
     function goto(path, callback) {
         const target = event ? event.target : {};
-        if (!path) {
-            path = '.';
-        }
         const xhr = new XMLHttpRequest();
         xhr.open('GET', fixPath(root + path) + '/index.json');
         xhr.onload = function () {
@@ -140,14 +137,18 @@
     function setBreadcrumbs(file, date, c) {
         let str = '';
         let path = '';
+        const append = (folder, path) => {
+            if (path === file) {
+                str += drawBox(`onclick="goto('${path}'); return false" href="#"`, c, folder);
+            } else {
+                str += `<a onclick="goto('${path}'); return false" href="#">${folder}</a>`;
+            }
+        }
+        append('&#x1f3e0;', '');
         if (file) {
             file.split('/').forEach(folder => {
                 path += folder;
-                if (path == file) {
-                    str += drawBox(`onclick="goto('${path}'); return false" href="#"`, c, folder);
-                } else {
-                    str += `<a onclick="goto('${path}'); return false" href="#">${folder}</a>`;
-                }
+                append(folder, path);
                 path += '/';
             });
         }
