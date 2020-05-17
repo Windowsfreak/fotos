@@ -188,7 +188,7 @@ func WalkSubdirectories(files []os.FileInfo, folder string, oldSubs map[string]M
 			if ok {
 				maxage, _ = CheckFolderAge(myOutFolder + "/" + name + "/" + "index.json")
 			}
-			if !ok && !maxage {
+			if !ok || !maxage {
 				subDir, c, err := Walk(name, folder+"/"+name)
 				if err != nil {
 					printStats(fmt.Errorf("walking through \"%v\" failed: %w", StripLeadingSlash(folder+"/"+name), err))
