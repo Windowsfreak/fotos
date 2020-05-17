@@ -14,6 +14,7 @@ var (
 	minFolderDate              time.Time
 	exclusions                 = map[string]struct{}{}
 	alwaysProcessRotatedImages = false
+	plausibility               = false
 )
 
 func main() {
@@ -49,6 +50,7 @@ func shellArguments() (int, string) {
 	maxAgePtr := flag.Duration("maxage", 0, "the maximum age after which folders are scanned again, e.g. 48h")
 	excludePtr := flag.String("exclude", "", "excluded folders, comma separated, e.g. snapshot")
 	alwaysProcessRotatedImagesPtr := flag.Bool("always-process-rotated-images", false, "Do not skip unmodified images when exif rotation is set if rotated")
+	plausibilityPtr := flag.Bool("plausibility", false, "Assume correct rotation when image is upright and requires 90 degree rotation")
 	flag.Parse()
 	threads := *threadsPtr
 	inFolder = *inFolderPtr
@@ -56,6 +58,7 @@ func shellArguments() (int, string) {
 	path := *pathPtr
 	maxAge := *maxAgePtr
 	alwaysProcessRotatedImages = *alwaysProcessRotatedImagesPtr
+	plausibility = *plausibilityPtr
 	if maxAge > 0 {
 		minFolderDate = time.Now().Add(-maxAge)
 	}
