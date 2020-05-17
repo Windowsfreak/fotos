@@ -168,7 +168,6 @@ func Run(inFile string, outFile string, fileInfo os.FileInfo) (Img, error) {
 	if plausibility && img.Orientation > 4 && img.ExifH > img.ExifW {
 		img.Orientation = 1
 	}
-	fmt.Println(img)
 	stats.LastImageName = inFile
 	stats.LastImageSize = fileInfo.Size()
 	m, err := Decode(inFile, strings.ToLower(filepath.Ext(fileInfo.Name())))

@@ -47,7 +47,6 @@ func Info(filename string, info os.FileInfo) (img Img, mod time.Time, err error)
 		err = fmt.Errorf("reading from pipe of \"exiftool\" with \"%v\" failed: %w", filename, err)
 		return
 	}
-	println(string(b))
 	data := strings.Split(strings.Trim(string(b), " \r\n"), "\t")
 	layout := "2006:01:02 15:04:05"
 	date, err := time.ParseInLocation(layout, data[0], time.Local)
