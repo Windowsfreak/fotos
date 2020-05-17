@@ -19,7 +19,7 @@ import (
 	"golang.org/x/text/language"
 
 	"github.com/chai2010/webp"
-    "github.com/disintegration/gift"
+	"github.com/disintegration/gift"
 	"github.com/jdeng/goheif"
 	"github.com/lmittmann/ppm"
 
@@ -130,14 +130,22 @@ func Rotate(in image.Image, o int) image.Image {
 	dim := in.Bounds()
 	var r gift.Filter
 	switch o {
-	case 2: r = gift.FlipHorizontal()
-	case 3: r = gift.Rotate180()
-	case 4: r = gift.FlipVertical()
-	case 5: r = gift.Transpose()
-	case 6: r = gift.Rotate270()
-	case 7: r = gift.Transverse()
-	case 8: r = gift.Rotate90()
-	default: return in
+	case 2:
+		r = gift.FlipHorizontal()
+	case 3:
+		r = gift.Rotate180()
+	case 4:
+		r = gift.FlipVertical()
+	case 5:
+		r = gift.Transpose()
+	case 6:
+		r = gift.Rotate270()
+	case 7:
+		r = gift.Transverse()
+	case 8:
+		r = gift.Rotate90()
+	default:
+		return in
 	}
 	out := image.NewRGBA(r.Bounds(dim))
 	r.Draw(out, in, nil)

@@ -8,11 +8,12 @@ import (
 )
 
 var (
-	concurrency   chan struct{}
-	inFolder      = ""
-	outFolder     = ""
-	minFolderDate time.Time
-	exclusions    = map[string]struct{}{}
+	concurrency                chan struct{}
+	inFolder                   = ""
+	outFolder                  = ""
+	minFolderDate              time.Time
+	exclusions                 = map[string]struct{}{}
+	alwaysProcessRotatedImages = false
 )
 
 func main() {
@@ -47,12 +48,14 @@ func shellArguments() (int, string) {
 	pathPtr := flag.String("path", "", "the relative path from which photos are updated, no leading or trailing slashes")
 	maxAgePtr := flag.Duration("maxage", 0, "the maximum age after which folders are scanned again, e.g. 48h")
 	excludePtr := flag.String("exclude", "", "excluded folders, comma separated, e.g. snapshot")
+	alwaysProcessRotatedImagesPtr := flag.Bool("always-process-rotated-images", false, "Do not skip unmodified images when exif rotation is set if rotated")
 	flag.Parse()
 	threads := *threadsPtr
 	inFolder = *inFolderPtr
 	outFolder = *outFolderPtr
 	path := *pathPtr
 	maxAge := *maxAgePtr
+	alwaysProcessRotatedImages = *alwaysProcessRotatedImagesPtr
 	if maxAge > 0 {
 		minFolderDate = time.Now().Add(-maxAge)
 	}

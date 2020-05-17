@@ -123,6 +123,12 @@ func WalkFiles(files []os.FileInfo, oldImgs map[string]Img, myInFolder string, m
 			var ok bool
 			if img, ok = oldImgs[name]; ok {
 				ok, _ = CheckFileAge(f, myOutFolder+"/"+name)
+				if alwaysProcessRotatedImages {
+					img, _, err := Info(myInFolder+"/"+name, f)
+					if err == nil && img.Orientation > 1 {
+						ok = false
+					}
+				}
 			}
 			if ok {
 				myDir.AddImage(img)
@@ -144,7 +150,7 @@ func WalkFiles(files []os.FileInfo, oldImgs map[string]Img, myInFolder string, m
 					img, err := Run(myInFolder+"/"+name, myOutFolder+"/"+name, f)
 					if err != nil || (img == Img{}) {
 						if err != nil {
-							stats.LastErrorName = myInFolder+"/"+name
+							stats.LastErrorName = myInFolder + "/" + name
 							printStats(fmt.Errorf("processing \"%v\" failed: %w", myInFolder+"/"+name, err))
 						}
 						stats.ImagesIgnored++
