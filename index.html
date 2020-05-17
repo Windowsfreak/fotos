@@ -49,7 +49,10 @@
             display: block;
         }
         .no {
-            background-color: #f88 !important;
+            background: #f88 !important;
+        }
+        .no * {
+            background: none !important;
         }
         body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 1.02em; }
     </style>
@@ -67,8 +70,9 @@
 <script src="./node_modules/photoswipe/dist/photoswipe-ui-default.min.js"></script>
 <script>
     const root = './';
+    let currentPath;
     fixPath = path => encodeURI(path.replace('#', '%23'));
-    function goto(path) {
+    function goto(path, callback) {
         const target = event ? event.target : {};
         if (!path) {
             path = '.';
@@ -79,21 +83,23 @@
             if (this.status >= 200 && this.status < 300) {
                 try {
                     load(path, JSON.parse(xhr.response));
-                    const x = location.hash.split('&');
+                    const x = location.hash.substring(1).split('&');
                     x[0] = encodeURIComponent(path);
                     location.hash = x.join('&');
+                    callback && callback();
                 } catch (e) {
                     console.log(e);
-                    target.className = 'no';
+                    xhr.onerror();
                 }
             } else {
                 xhr.onerror();
             }
         };
-        xhr.onerror = () => target.className = 'no';
+        xhr.onerror = () => { if (target) target.closest('a').className = 'no'; }
         xhr.send();
     }
     function load(path, json) {
+        currentPath = path;
         setBreadcrumbs(path, `${dateRange(json.oldest, json.newest)}`, json.c);
         setFolders(path, json.subs || []);
         setImages(path, json.imgs || []);
@@ -138,9 +144,9 @@
             file.split('/').forEach(folder => {
                 path += folder;
                 if (path == file) {
-                    str += drawBox(`onclick="goto('${path}')" href="#"`, c, folder);
+                    str += drawBox(`onclick="goto('${path}'); return false" href="#"`, c, folder);
                 } else {
-                    str += `<a onclick="goto('${path}')" href="#">${folder}</a>`;
+                    str += `<a onclick="goto('${path}'); return false" href="#">${folder}</a>`;
                 }
                 path += '/';
             });
@@ -155,7 +161,7 @@
             folder.images && i.push(plural(folder.images, 'Foto', 's'))
             folder.files && i.push(plural(folder.files, 'Datei', 'en'))
             const i_str = i.length ? '<span>' + i.join(', ') + '</span>' : ''
-            str += drawBox(`onclick="goto('${file ? file + '/' : ''}${folder.n}')" href="#"`, folder.c, folder.n +
+            str += drawBox(`onclick="goto('${file ? file + '/' : ''}${folder.n}'); return false" href="#"`, folder.c, folder.n +
                 i_str +
                 (folder.folders ? `<span>${folder.totalImages ? plural(folder.totalImages, 'Foto', 's') + ' in ' + plural(folder.folders, 'Ordner', 'n') : `enthält ${folder.folders} Ordner`}</span>` : '') +
                 (folder.newest !== '0001-01-01T00:00:00Z' ? `<span>${dateRange(folder.oldest, folder.newest)}</span>` : '')
@@ -168,6 +174,7 @@
         var imgs = [];
         images.forEach(image => {
             str += drawBox(`class="item" href="${fixPath(root+file+'/'+image.n)}.h.webp"\
+            data-id="${image.n}"\
             data-w="${image.w}"\
             data-h="${image.h}" data-name="${image.n}"`, image.c, `<img src="${fixPath(root+file+'/'+image.n)}.s.webp">`);
             imgs.push({
@@ -175,14 +182,16 @@
                 w: image.w,
                 h: image.h,
                 title: `${image.n} - ${dateStr(image.d)} - ${image.w} x ${image.h}`,
-                msrc: `${fixPath(root+file+'/'+image.n)}.s.webp`
+                msrc: `${fixPath(root+file+'/'+image.n)}.s.webp`,
+                pid: image.n
             });
         });
         window.items = imgs;
         document.getElementById('images').innerHTML = str;
     }
-    document.getElementById('images').onclick = function(event) {
+    const openImage = event => {
         var elm = event.target;
+        if (!elm) return;
         while (elm.className !== 'item') {
             elm = elm.parentElement;
         }
@@ -190,20 +199,37 @@
         var options = {
             index: Array.prototype.indexOf.call(elm.parentElement.children, elm),
             getThumbBoundsFn: function(index) {
-                var pageYScroll = window.pageYOffset || document.documentElement.scrollTop;
+                const pageYScroll = window.pageYOffset || document.documentElement.scrollTop;
                 // get position of element relative to viewport
-                var rect = elm.parentElement.children[index].getBoundingClientRect();
+                const rect = elm.parentElement.children[index].getBoundingClientRect();
                 return {x:rect.left, y:rect.top + pageYScroll, w:rect.width};
             },
             showAnimationDuration: 100,
-            hideAnimationDuration: 200
+            hideAnimationDuration: 200,
+            galleryPIDs: true
         };
 
         var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, options);
         gallery.init();
         return false;
     };
-    goto(decodeURIComponent(location.hash.split('&')[0].replace('#', '')));
+    document.getElementById('images').onclick = openImage;
+    update = callback => {
+        const path = decodeURIComponent(location.hash.substring(1).split('&')[0]);
+        if (path !== currentPath) {
+            goto(path, callback);
+        }
+    }
+    update(() => {
+        const hash = location.hash.substring(1).split('&');
+        const pid = hash.filter(v => v.startsWith('pid='))[0];
+        if (pid === undefined) return;
+        const pidVal = pid.split('=')[1];
+        openImage({
+            target: [...document.getElementsByClassName('item')].filter(item => item.getAttribute('data-id') === pidVal)[0]
+        })
+    });
+    window.onhashchange = update;
 </script>
 
 <!-- Root element of PhotoSwipe. Must have class pswp. -->
