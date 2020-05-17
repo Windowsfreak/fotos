@@ -19,6 +19,7 @@ import (
 	"golang.org/x/text/language"
 
 	"github.com/chai2010/webp"
+    "github.com/disintegration/gift"
 	"github.com/jdeng/goheif"
 	"github.com/lmittmann/ppm"
 
@@ -125,6 +126,24 @@ func Thumb(m image.Image, w uint, h uint) image.Image {
 	return resize.Thumbnail(w, h, m, resize.Lanczos3)
 }
 
+func Rotate(in image.Image, o int) image.Image {
+	dim := in.Bounds()
+	var r gift.Filter
+	switch o {
+	case 2: r = gift.FlipHorizontal()
+	case 3: r = gift.Rotate180()
+	case 4: r = gift.FlipVertical()
+	case 5: r = gift.Transpose()
+	case 6: r = gift.Rotate270()
+	case 7: r = gift.Transverse()
+	case 8: r = gift.Rotate90()
+	default: return in
+	}
+	out := image.NewRGBA(r.Bounds(dim))
+	r.Draw(out, in, nil)
+	return out
+}
+
 func CheckFileAge(in os.FileInfo, outFile string) (bool, error) {
 	out, err := os.Stat(outFile + ".s.webp")
 	if err != nil {
@@ -152,6 +171,12 @@ func Run(inFile string, outFile string, fileInfo os.FileInfo) (Img, error) {
 	img.W = bounds.Dx()
 	img.H = bounds.Dy()
 	large := Thumb(m, 2048, 2048)
+	if img.Orientation > 4 {
+		img.W, img.H = img.H, img.W
+	}
+	if img.Orientation > 1 {
+		large = Rotate(large, img.Orientation)
+	}
 	m = nil
 	if err := EncodeWebP(large, outFile+".h.webp", 60); err != nil {
 		return img, fmt.Errorf("encode image \"%v.h.webp\" failed: %w", outFile, err)

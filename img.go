@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"math"
 	"os"
 	"os/exec"
 	"strconv"
@@ -14,20 +13,21 @@ import (
 )
 
 type Img struct {
-	N   string    `json:"n"`
-	W   int       `json:"w"`
-	H   int       `json:"h"`
-	D   time.Time `json:"d,omitempty"`
-	C   string    `json:"c,omitempty"`
-	Lat float64   `json:"lat,omitempty"`
-	Lon float64   `json:"lon,omitempty"`
+	N           string    `json:"n"`
+	W           int       `json:"w"`
+	H           int       `json:"h"`
+	D           time.Time `json:"d,omitempty"`
+	C           string    `json:"c,omitempty"`
+	Lat         float64   `json:"lat,omitempty"`
+	Lon         float64   `json:"lon,omitempty"`
+	Orientation int       `json:"-"`
 }
 
 func Info(filename string, info os.FileInfo) (img Img, mod time.Time, err error) {
 	img.N = norm.NFC.String(info.Name())
 	img.D = info.ModTime().Add(time.Duration(-info.ModTime().Nanosecond()))
 	mod = info.ModTime()
-	cmd := exec.Command("exiftool", "-T", "-datetimeoriginal", "-gps:GPSLatitude", "-gps:GPSLongitude", filename)
+	cmd := exec.Command("exiftool", "-T", "-datetimeoriginal", "-orientation", "-gps:GPSLatitude", "-gps:GPSLongitude", "-n", filename)
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		err = fmt.Errorf("creating pipe for \"exiftool\" with \"%v\" failed: %w", filename, err)
@@ -51,32 +51,23 @@ func Info(filename string, info os.FileInfo) (img Img, mod time.Time, err error)
 	if err == nil {
 		img.D = date
 	}
-	if data[1] == "-" {
-		data[1] = ""
-	}
-	if data[2] == "-" {
-		data[2] = ""
-	}
-	img.Lat = ddStr(data[1])
-	img.Lon = ddStr(data[2])
+	img.Orientation = orientation(data[1])
+	img.Lat = ddStr(data[2])
+	img.Lon = ddStr(data[3])
 	return
 }
 
+func orientation(in string) int {
+	val, err := strconv.Atoi(in)
+	if err != nil {
+		return 1
+	}
+	return val
+}
 func ddStr(in string) float64 {
-	in = strings.ReplaceAll(in, " deg ", " ")
-	in = strings.ReplaceAll(in, "'", "")
-	in = strings.ReplaceAll(in, "\"", "")
-	in = strings.ReplaceAll(in, "º", "")
-	s := strings.Split(in, " ")
-	if len(s) < 3 {
+	val, err := strconv.ParseFloat(in, 64)
+	if err != nil {
 		return 0
 	}
-	deg, _ := strconv.ParseFloat(s[0], 64)
-	min, _ := strconv.ParseFloat(s[1], 64)
-	sec, _ := strconv.ParseFloat(s[2], 64)
-	return math.Round(dd(deg, min, sec)*1000000) / 1000000
-}
-
-func dd(deg float64, min float64, sec float64) float64 {
-	return deg + (min / 60) + (sec / 3600)
+	return val
 }

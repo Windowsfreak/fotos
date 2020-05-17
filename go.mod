@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/chai2010/webp v1.1.0
+	github.com/disintegration/gift v1.2.1
 	github.com/jdeng/goheif v0.0.0-20200323230657-a0d6a8b3e68f
 	github.com/lmittmann/ppm v1.0.0
 	github.com/mdouchement/dng v0.0.0-20170415183926-292bb2b0015a // indirect
