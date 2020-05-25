@@ -21,7 +21,7 @@
             padding: 5px 10px;
             text-decoration: none;
             color: black;
-            background-color: #ccc;
+            background: linear-gradient(to right, #ccc, #fff);
         }
         #breadcrumbs a:last-child {
             background-color: #fff;
@@ -44,6 +44,22 @@
             text-shadow: 0 1px 4px #000, 0 1px 8px #000;
             color: #fff;
         }
+        h3, p {
+            margin: 10px 10px;
+        }
+        h3 {
+            font-size: 1.2em;
+            justify-content: space-between;
+        }
+        h3:empty, p:empty {
+            margin: unset;
+        }
+        h3:not(:empty):after {
+            content: '';
+            display: block;
+            background: linear-gradient(to right, white, black);
+            height: 1px;
+        }
         #folders span {
             font-size: 0.5em;
             display: block;
@@ -59,8 +75,13 @@
 </head>
 <body>
 <h2 id="breadcrumbs"></h2>
+<h4 id="date"></h4>
+<h3 id="folders_head"></h3>
 <h2 id="folders"></h2>
+<h3 id="images_head"></h3>
 <div id="images" class="flex-images"></div>
+<h3 id="files_head"></h3>
+<p id="files"></p>
 <script type="javascript">
 </script>
 <script src="./node_modules/javascript-flex-images/flex-images.min.js"></script>
@@ -72,7 +93,7 @@
     const root = './';
     let currentPath;
     fixPath = path => encodeURI(path.replace('#', '%23'));
-    function goto(path, callback) {
+    function goto(path) {
         const target = event ? event.target : {};
         const xhr = new XMLHttpRequest();
         xhr.open('GET', fixPath(root + path) + '/index.json');
@@ -83,7 +104,7 @@
                     const x = location.hash.substring(1).split('&');
                     x[0] = encodeURIComponent(path);
                     location.hash = x.join('&');
-                    callback && callback();
+                    callback();
                 } catch (e) {
                     console.log(e);
                     xhr.onerror();
@@ -92,12 +113,21 @@
                 xhr.onerror();
             }
         };
-        xhr.onerror = () => { if (target) target.closest('a').className = 'no'; }
+        xhr.onerror = () => { if (target && target.closest) target.closest('a').className = 'no'; }
         xhr.send();
     }
     function load(path, json) {
         currentPath = path;
-        setBreadcrumbs(path, `${dateRange(json.oldest, json.newest)}`, json.c);
+        setBreadcrumbs(path, json.c, caption(json));
+        document.getElementById('date').innerHTML = caption(json, ['dates']);
+        document.getElementById('folders_head').innerHTML = caption(json, ['folders']);
+        document.getElementById('images_head').innerHTML = caption(json, ['images']);
+        document.getElementById('files_head').innerHTML = caption(json, ['files']);
+        document.getElementById('files').innerHTML = json.misc && json.misc.map(s=>{
+            const p = document.createElement('p');
+            p.textContent = s;
+            return p.innerHTML;
+        }).join('<br />') || '';
         setFolders(path, json.subs || []);
         setImages(path, json.imgs || []);
         new flexImages({selector: '#images', rowHeight: 200});
@@ -134,7 +164,7 @@
             to.toLocaleDateString('de-DE', fullDate);
     }
     const dateStr = date => new Date(date).toLocaleString('de-DE', fullString);
-    function setBreadcrumbs(file, date, c) {
+    function setBreadcrumbs(file, c) {
         let str = '';
         let path = '';
         const append = (folder, path) => {
@@ -152,21 +182,22 @@
                 path += '/';
             });
         }
-        document.getElementById('breadcrumbs').innerHTML = `${str} ${date}`;
+        document.getElementById('breadcrumbs').innerHTML = str;
     }
     plural = (x, sg, pl) => `${x || 0} ${sg}` + (x !== 1 ? pl : '');
+    function caption(folder, elements = ['images', 'files', 'folders', 'dates']) {
+        const i = [];
+        elements.includes('images') && folder.images && i.push(plural(folder.images, 'Foto', 's'))
+        elements.includes('files') && folder.files && i.push(plural(folder.files, 'Datei', 'en'))
+        const i_str = i.length ? '<span>' + i.join(', ') + '</span>' : ''
+        return i_str +
+            (elements.includes('folders') && folder.folders ? `<span>${folder.totalImages ? plural(folder.totalImages, 'Foto', 's') + ' in ' + plural(folder.folders, 'Ordner', 'n') : `enthält ${folder.folders} Ordner`}</span>` : '') +
+            (elements.includes('dates') && folder.newest !== '0001-01-01T00:00:00Z' ? `<span>${dateRange(folder.oldest, folder.newest)}</span>` : '');
+    }
     function setFolders(file, folders) {
         var str = '';
         folders.forEach(folder => {
-            const i = [];
-            folder.images && i.push(plural(folder.images, 'Foto', 's'))
-            folder.files && i.push(plural(folder.files, 'Datei', 'en'))
-            const i_str = i.length ? '<span>' + i.join(', ') + '</span>' : ''
-            str += drawBox(`onclick="goto('${file ? file + '/' : ''}${folder.n}'); return false" href="#"`, folder.c, folder.n +
-                i_str +
-                (folder.folders ? `<span>${folder.totalImages ? plural(folder.totalImages, 'Foto', 's') + ' in ' + plural(folder.folders, 'Ordner', 'n') : `enthält ${folder.folders} Ordner`}</span>` : '') +
-                (folder.newest !== '0001-01-01T00:00:00Z' ? `<span>${dateRange(folder.oldest, folder.newest)}</span>` : '')
-            );
+            str += drawBox(`onclick="goto('${file ? file + '/' : ''}${folder.n}'); return false" href="#"`, folder.c, folder.n + caption(folder));
         });
         document.getElementById('folders').innerHTML = str;
     }
@@ -215,13 +246,13 @@
         return false;
     };
     document.getElementById('images').onclick = openImage;
-    update = callback => {
+    update = () => {
         const path = decodeURIComponent(location.hash.substring(1).split('&')[0]);
         if (path !== currentPath) {
-            goto(path, callback);
+            goto(path);
         }
     }
-    update(() => {
+    const callback = () => {
         const hash = location.hash.substring(1).split('&');
         const pid = hash.filter(v => v.startsWith('pid='))[0];
         if (pid === undefined) return;
@@ -229,7 +260,8 @@
         openImage({
             target: [...document.getElementsByClassName('item')].filter(item => item.getAttribute('data-id') === pidVal)[0]
         })
-    });
+    }
+    update();
     window.onhashchange = update;
 </script>
 
