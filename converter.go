@@ -170,7 +170,8 @@ func Run(inFile string, outFile string, fileInfo os.FileInfo) (Img, error) {
 	}
 	stats.LastImageName = inFile
 	stats.LastImageSize = fileInfo.Size()
-	m, err := Decode(inFile, strings.ToLower(filepath.Ext(fileInfo.Name())))
+	format := strings.ToLower(filepath.Ext(fileInfo.Name()))
+	m, err := Decode(inFile, format)
 	if err != nil {
 		return img, fmt.Errorf("decode image \"%v\" failed: %w", inFile, err)
 	}
@@ -182,6 +183,9 @@ func Run(inFile string, outFile string, fileInfo os.FileInfo) (Img, error) {
 	img.W = bounds.Dx()
 	img.H = bounds.Dy()
 	large := Thumb(m, 2048, 2048)
+	if plausibility && ((img.Orientation > 4 && img.ExifH > img.ExifW) || format == ".cr2") {
+		img.Orientation = 1
+	}
 	if img.Orientation > 4 {
 		img.W, img.H = img.H, img.W
 	}
