@@ -73,7 +73,8 @@ func Decode(filename string, format string) (m image.Image, err error) {
 		".mpg", ".mpeg", ".ps", ".ts", ".rm", ".ogv", ".dv":
 		return DecodeVideo(filename)
 	case ".ini", ".pano", ".html", ".log", ".db", ".zip", ".thumbnail", ".exe", ".tif", ".info", ".tlv", ".map", ".psd",
-		".tar", ".rar", ".txt", ".ivp", ".rzs", ".dat", ".tmp", ".mrk", ".acv", ".atn", ".shh", ".bdm", ".tdt", ".tid":
+		".tar", ".rar", ".txt", ".ivp", ".rzs", ".dat", ".tmp", ".mrk", ".acv", ".atn", ".shh", ".bdm", ".tdt", ".tid",
+		".xmp", ".golf":
 		return nil, nil
 	default:
 		if f, err = os.Open(filename); err != nil {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -124,9 +125,12 @@ func WalkFiles(files []os.FileInfo, oldImgs map[string]Img, myInFolder string, m
 			if img, ok = oldImgs[name]; ok {
 				ok, _ = CheckFileAge(f, myOutFolder+"/"+name)
 				if alwaysProcessRotatedImages {
-					img, _, err := Info(myInFolder+"/"+name, f)
-					if err == nil && img.Orientation > 1 {
-						ok = false
+					format := strings.ToLower(filepath.Ext(name))
+					if format == ".cr2" {
+						img, _, err := Info(myInFolder+"/"+name, f)
+						if err == nil && img.Orientation > 1 {
+							ok = false
+						}
 					}
 				}
 			}
