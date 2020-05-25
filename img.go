@@ -53,6 +53,10 @@ func Info(filename string, info os.FileInfo) (img Img, mod time.Time, err error)
 	if err == nil {
 		img.D = date
 	}
+	if len(data) < 2 { // Assume error "No matching files"
+		err = fmt.Errorf("no matching files")
+		return
+	}
 	img.Orientation = orientation(data[1])
 	img.Lat = ddStr(data[2])
 	img.Lon = ddStr(data[3])
