@@ -118,11 +118,11 @@
     }
     function load(path, json) {
         currentPath = path;
-        setBreadcrumbs(path, json.c, caption(json));
+        setBreadcrumbs(path, json.c);
         document.getElementById('date').innerHTML = caption(json, ['dates']);
         document.getElementById('folders_head').innerHTML = caption(json, ['folders']);
         document.getElementById('images_head').innerHTML = caption(json, ['images']);
-        document.getElementById('files_head').innerHTML = caption(json, ['files']);
+        document.getElementById('files_head').innerHTML = json.misc && caption(json, ['files']) || '';
         document.getElementById('files').innerHTML = json.misc && json.misc.map(s=>{
             const p = document.createElement('p');
             p.textContent = s;
@@ -188,7 +188,8 @@
     function caption(folder, elements = ['images', 'files', 'folders', 'dates']) {
         const i = [];
         elements.includes('images') && folder.images && i.push(plural(folder.images, 'Foto', 's'))
-        elements.includes('files') && folder.files && i.push(plural(folder.files, 'Datei', 'en'))
+        const files = !folder.subs && folder.files || (folder.misc && folder.misc.length) || 0;
+        elements.includes('files') && files && i.push(plural(files, 'Datei', 'en'))
         const i_str = i.length ? '<span>' + i.join(', ') + '</span>' : ''
         return i_str +
             (elements.includes('folders') && folder.folders ? `<span>${folder.totalImages ? plural(folder.totalImages, 'Foto', 's') + ' in ' + plural(folder.folders, 'Ordner', 'n') : `enthält ${folder.folders} Ordner`}</span>` : '') +
