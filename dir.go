@@ -20,6 +20,9 @@ func (d *Dir) Sort() {
 	sort.SliceStable(d.Imgs, func(i, j int) bool {
 		return cl.CompareString(d.Imgs[i].N, d.Imgs[j].N) < 0
 	})
+	sort.SliceStable(d.Misc, func(i, j int) bool {
+		return cl.CompareString(d.Misc[i], d.Misc[j]) < 0
+	})
 }
 func (d *Dir) AddFolder(subDir MinDir) {
 	d.Subs = append(d.Subs, subDir)
