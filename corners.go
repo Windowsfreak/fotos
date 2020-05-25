@@ -21,7 +21,7 @@ func (c *Corners) Multiply(times uint64) {
 
 func (c Corners) String() string {
 	if c.count == 0 {
-		return "ffffffffffffffffffffffff"
+		return "000000000000000000000000"
 	}
 	var data [12]byte
 	for i, v := range c.nibbles {

@@ -7,9 +7,10 @@ import (
 
 type Dir struct {
 	MinDir
-	Path string   `json:"path,omitempty"`
+	Path string   `json:"-"`
 	Subs []MinDir `json:"subs,omitempty"`
 	Imgs []Img    `json:"imgs,omitempty"`
+	Misc []string `json:"misc,omitempty"`
 }
 
 func (d *Dir) Sort() {
@@ -42,6 +43,9 @@ func (d *Dir) AddImage(img Img) {
 	if d.Newest.Before(img.D) {
 		d.Newest = img.D
 	}
+}
+func (d *Dir) AddMisc(name string) {
+	d.Misc = append(d.Misc, name)
 }
 
 func (d Dir) MakeOld() OldDir {

@@ -157,6 +157,7 @@ func WalkFiles(files []os.FileInfo, oldImgs map[string]Img, myInFolder string, m
 							stats.LastErrorName = myInFolder + "/" + name
 							printStats(fmt.Errorf("processing \"%v\" failed: %w", myInFolder+"/"+name, err))
 						}
+						myDir.AddMisc(name)
 						stats.ImagesIgnored++
 						myDir.Files++
 					} else {
