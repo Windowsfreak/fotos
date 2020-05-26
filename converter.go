@@ -86,29 +86,23 @@ func Decode(filename string, format string) (m image.Image, err error) {
 }
 func DecodeDcraw(filename string) (image.Image, error) {
 	cmd := exec.Command("dcraw", "-c", filename)
-	out, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, fmt.Errorf("creating pipe for \"dcraw -c %v\" failed: %w", filename, err)
-	}
-	err = cmd.Run()
+	var outbuf bytes.Buffer
+	cmd.Stdout = &outbuf
+	err := cmd.Run()
 	if err != nil {
 		return nil, fmt.Errorf("executing \"dcraw -c %v\" failed: %w", filename, err)
 	}
-	defer out.Close()
-	return ppm.Decode(out)
+	return ppm.Decode(bytes.NewReader(outbuf.Bytes()))
 }
 func DecodeVideo(filename string) (image.Image, error) {
 	cmd := exec.Command("ffmpeg", "-i", filename, "-ss", "00:00:00.000", "-vframes", "1", "-f", "image2pipe", "-vcodec", "png", "-")
-	out, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, fmt.Errorf("creating pipe for \"ffmpeg\" with \"%v\" failed: %w", filename, err)
-	}
-	err = cmd.Run()
+	var outbuf bytes.Buffer
+	cmd.Stdout = &outbuf
+	err := cmd.Run()
 	if err != nil {
 		return nil, fmt.Errorf("executing \"ffmpeg\" with \"%v\" failed: %w", filename, err)
 	}
-	defer out.Close()
-	return png.Decode(out)
+	return png.Decode(bytes.NewReader(outbuf.Bytes()))
 }
 func EncodeWebP(m image.Image, filename string, quality float32) error {
 	var buf bytes.Buffer
