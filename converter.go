@@ -90,12 +90,11 @@ func DecodeDcraw(filename string) (image.Image, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating pipe for \"dcraw -c %v\" failed: %w", filename, err)
 	}
-	err = cmd.Start()
+	err = cmd.Run()
 	if err != nil {
 		return nil, fmt.Errorf("executing \"dcraw -c %v\" failed: %w", filename, err)
 	}
 	defer out.Close()
-	defer cmd.Wait()
 	return ppm.Decode(out)
 }
 func DecodeVideo(filename string) (image.Image, error) {
@@ -104,12 +103,11 @@ func DecodeVideo(filename string) (image.Image, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating pipe for \"ffmpeg\" with \"%v\" failed: %w", filename, err)
 	}
-	err = cmd.Start()
+	err = cmd.Run()
 	if err != nil {
 		return nil, fmt.Errorf("executing \"ffmpeg\" with \"%v\" failed: %w", filename, err)
 	}
 	defer out.Close()
-	defer cmd.Wait()
 	return png.Decode(out)
 }
 func EncodeWebP(m image.Image, filename string, quality float32) error {
