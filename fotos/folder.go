@@ -207,7 +207,7 @@ func WalkSubdirectories(files []os.FileInfo, folder string, oldSubs map[string]M
 				maxage, _ = CheckFolderAge(myOutFolder + "/" + name + "/" + "index.json")
 			}
 			for _, path := range invalidatePaths {
-				if strings.HasPrefix(path, folder+"/"+name) {
+				if strings.HasPrefix(path, StripLeadingSlash(folder+"/"+name)) {
 					maxage = false
 				}
 			}
