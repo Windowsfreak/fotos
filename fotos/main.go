@@ -1,10 +1,13 @@
-package main
+package fotos
 
 import (
 	"flag"
 	"runtime"
 	"strings"
 	"time"
+
+	"fotos/domain"
+	"fotos/repository"
 )
 
 var (
@@ -15,9 +18,69 @@ var (
 	exclusions                 = map[string]struct{}{}
 	alwaysProcessRotatedImages = false
 	plausibility               = false
+	invalidatePaths            []string
+	Running                    = false
+	Repeat                     = false
+	RepeatConfig               domain.ConfigStruct
 )
 
-func main() {
+func TryRun(config domain.ConfigStruct, r repository.Repository) {
+	if Running {
+		Repeat = true
+		i := RepeatConfig.InvalidatePaths
+		RepeatConfig = config
+		for _, s := range config.InvalidatePaths {
+			i = append(i, s)
+		}
+		RepeatConfig.InvalidatePaths = i
+	} else {
+		runCustom(config, r)
+	}
+}
+
+func runCustom(config domain.ConfigStruct, r repository.Repository) {
+	if config.MaxAge > 0 {
+		minFolderDate = time.Now().Add(-config.MaxAge)
+	}
+	for _, v := range strings.Split(config.Exclude, ",") {
+		exclusions[v] = struct{}{}
+	}
+	inFolder = config.InFolder
+	outFolder = config.OutFolder
+	path := config.Path
+	alwaysProcessRotatedImages = config.AlwaysProcessRotatedImages
+	plausibility = config.Plausibility
+	invalidatePaths = config.InvalidatePaths
+	stats.Path = config.Path
+	concurrency = make(chan struct{}, config.Threads)
+	p := strings.Split(path, "/")
+	name := p[len(p)-1]
+	if path == "" {
+		name = "Fotos"
+	}
+	// feedLines()
+	stats.NoFeed = true
+	stats.StartTime = time.Now()
+	printStats(nil)
+	Running = true
+	go func() {
+		for Running {
+			printStats(nil)
+			time.Sleep(5 * time.Second)
+		}
+	}()
+	_, _, err := Walk(name, path, r)
+	printStats(err)
+	Running = false
+	if Repeat {
+		Repeat = false
+		c := RepeatConfig
+		RepeatConfig.InvalidatePaths = []string{}
+		runCustom(c, r)
+	}
+}
+
+func Main() {
 	threads, path := shellArguments()
 	stats.Path = path
 	concurrency = make(chan struct{}, threads)
@@ -27,18 +90,20 @@ func main() {
 		name = "Fotos"
 	}
 	feedLines()
-	printStats(nil)
+	// printStats(nil)
 	running := true
 	go func() {
+		time.Sleep(5 * time.Second)
 		for running {
 			printStats(nil)
 			time.Sleep(5 * time.Second)
 		}
 	}()
-	_, _, err := Walk(name, path)
-	if err != nil {
+	_, _, err := Walk(name, path, nil)
+	/*if err != nil {
 		printStats(err)
-	}
+	}*/
+	printStats(err)
 	running = false
 }
 

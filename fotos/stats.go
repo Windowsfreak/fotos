@@ -1,4 +1,4 @@
-package main
+package fotos
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 )
 
 type Stats struct {
+	NoFeed                bool
 	Path                  string
 	BytesRead             int64
 	BytesSkipped          int64
@@ -33,7 +34,9 @@ func feedLines() {
 }
 
 func printStats(err error) {
-	fmt.Print("\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K")
+	if !stats.NoFeed {
+		fmt.Print("\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K")
+	}
 	if err != nil {
 		fmt.Println(err)
 	}

@@ -1,4 +1,4 @@
-package main
+package fotos
 
 import (
 	"fmt"
@@ -57,6 +57,7 @@ func Info(filename string, info os.FileInfo) (img Img, mod time.Time, err error)
 		err = fmt.Errorf("no matching files")
 		return
 	}
+
 	img.Orientation = orientation(data[1])
 	img.Lat = ddStr(data[2])
 	img.Lon = ddStr(data[3])

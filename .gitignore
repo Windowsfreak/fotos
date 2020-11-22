@@ -6,6 +6,7 @@
 images
 node_modules
 vendor/
-fotos
 *.iml
 *.json
+config.yml
+discord_users.db

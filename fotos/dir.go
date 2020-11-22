@@ -1,4 +1,4 @@
-package main
+package fotos
 
 import (
 	"sort"
@@ -66,6 +66,7 @@ func (d Dir) MakeOld() OldDir {
 }
 
 type MinDir struct {
+	D           string    `json:"d"`
 	N           string    `json:"n"`
 	Files       int       `json:"files,omitempty"`
 	Folders     int       `json:"folders,omitempty"`

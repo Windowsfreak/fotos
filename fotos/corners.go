@@ -1,4 +1,4 @@
-package main
+package fotos
 
 import (
 	"encoding/hex"

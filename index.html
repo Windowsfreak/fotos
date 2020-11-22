@@ -91,6 +91,7 @@
 <script src="./node_modules/photoswipe/dist/photoswipe-ui-default.min.js"></script>
 <script>
     const root = './';
+    const original = '../Original/';
     let currentPath;
     fixPath = path => encodeURI(path.replace('#', '%23'));
     function goto(path) {
@@ -118,7 +119,7 @@
     }
     function load(path, json) {
         currentPath = path;
-        setBreadcrumbs(path, json.c);
+        setBreadcrumbs(path, json.c, json.d || json.n);
         document.getElementById('date').innerHTML = caption(json, ['dates']);
         document.getElementById('folders_head').innerHTML = caption(json, ['folders']);
         document.getElementById('images_head').innerHTML = caption(json, ['images']);
@@ -164,12 +165,12 @@
             to.toLocaleDateString('de-DE', fullDate);
     }
     const dateStr = date => new Date(date).toLocaleString('de-DE', fullString);
-    function setBreadcrumbs(file, c) {
+    function setBreadcrumbs(file, c, d) {
         let str = '';
         let path = '';
         const append = (folder, path) => {
             if (path === file) {
-                str += drawBox(`onclick="goto('${path}'); return false" href="#"`, c, folder);
+                str += drawBox(`onclick="goto('${path}'); return false" href="#"`, c, d);
             } else {
                 str += `<a onclick="goto('${path}'); return false" href="#">${folder}</a>`;
             }
@@ -198,7 +199,7 @@
     function setFolders(file, folders) {
         var str = '';
         folders.forEach(folder => {
-            str += drawBox(`onclick="goto('${file ? file + '/' : ''}${folder.n}'); return false" href="#"`, folder.c, folder.n + caption(folder));
+            str += drawBox(`onclick="goto('${file ? file + '/' : ''}${folder.n}'); return false" href="#"`, folder.c, (folder.d || folder.n) + caption(folder));
         });
         document.getElementById('folders').innerHTML = str;
     }
@@ -212,6 +213,7 @@
             data-h="${image.h}" data-name="${image.n}"`, image.c, `<img src="${fixPath(root+file+'/'+image.n)}.s.webp">`);
             imgs.push({
                 src: `${fixPath(root+file+'/'+image.n)}.h.webp`,
+                download: `${fixPath(original+file+'/'+image.n)}`,
                 w: image.w,
                 h: image.h,
                 title: `${image.n} - ${dateStr(image.d)} - ${image.w} x ${image.h}`,
@@ -229,6 +231,7 @@
             elm = elm.parentElement;
         }
         var pswpElement = document.querySelectorAll('.pswp')[0];
+        var gallery;
         var options = {
             index: Array.prototype.indexOf.call(elm.parentElement.children, elm),
             getThumbBoundsFn: function(index) {
@@ -239,10 +242,11 @@
             },
             showAnimationDuration: 100,
             hideAnimationDuration: 200,
-            galleryPIDs: true
+            galleryPIDs: true,
+            getImageURLForShare: () => gallery.currItem.download || gallery.currItem.src || '',
         };
 
-        var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, options);
+        gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, options);
         gallery.init();
         return false;
     };

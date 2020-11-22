@@ -1,0 +1,10 @@
+Threads: 1
+InFolder: "images/Original/"
+OutFolder: "images/Website/"
+Path:
+MaxAge: 0
+Exclude:
+AlwaysProcessRotatedImages: false
+Plausibility: true
+ServerAddr: ":40715"
+PreSharedKey: "super-secret-and-unguessable"

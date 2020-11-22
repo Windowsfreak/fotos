@@ -1,4 +1,4 @@
-package main
+package fotos
 
 import (
 	"encoding/json"
@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"golang.org/x/text/unicode/norm"
+
+	"fotos/repository"
 )
 
 func getInfo(folder string) (OldDir, error) {
@@ -40,6 +42,7 @@ func StripLeadingSlash(text string) string {
 	return text
 }
 
+// CheckFolderAge returns true if folder is still fresh enough
 func CheckFolderAge(name string) (bool, error) {
 	in, err := os.Stat(name)
 	if err != nil {
@@ -48,7 +51,7 @@ func CheckFolderAge(name string) (bool, error) {
 	return in.ModTime().After(minFolderDate), nil
 }
 
-func Walk(name string, folder string) (Dir, Corners, error) {
+func Walk(name string, folder string, r repository.Repository) (Dir, Corners, error) {
 	var corners []Corners
 	myInFolder := inFolder
 	myOutFolder := outFolder
@@ -57,7 +60,17 @@ func Walk(name string, folder string) (Dir, Corners, error) {
 		myInFolder += "/" + folder
 		myOutFolder += "/" + folder
 	}
-	myDir := Dir{MinDir: MinDir{N: name, Oldest: time.Now()}, Path: folder}
+	d := name
+	if r != nil {
+		num, err := repository.ConvertStringToInt64(name)
+		if err == nil {
+			username, discriminator, err := r.Fetch(num)
+			if err == nil {
+				d = username + "#" + discriminator
+			}
+		}
+	}
+	myDir := Dir{MinDir: MinDir{D: d, N: name, Oldest: time.Now()}, Path: folder}
 	if err := os.MkdirAll(myOutFolder, os.ModePerm); err != nil {
 		return myDir, Corners{}, fmt.Errorf("could not create folder structure for \"%v\": %w", myOutFolder, err)
 	}
@@ -66,7 +79,7 @@ func Walk(name string, folder string) (Dir, Corners, error) {
 		return myDir, Corners{}, fmt.Errorf("could not list contents of folder \"%v\": %w", myInFolder, err)
 	}
 	oldDir, _ := getInfo(folder)
-	corners, err = WalkSubdirectories(files, folder, oldDir.Subs, myOutFolder, &myDir, corners)
+	corners, err = WalkSubdirectories(files, folder, oldDir.Subs, myOutFolder, &myDir, corners, r)
 	if err != nil {
 		return myDir, Corners{}, err
 	}
@@ -177,7 +190,7 @@ func WalkFiles(files []os.FileInfo, oldImgs map[string]Img, myInFolder string, m
 	return corners
 }
 
-func WalkSubdirectories(files []os.FileInfo, folder string, oldSubs map[string]MinDir, myOutFolder string, myDir *Dir, corners []Corners) ([]Corners, error) {
+func WalkSubdirectories(files []os.FileInfo, folder string, oldSubs map[string]MinDir, myOutFolder string, myDir *Dir, corners []Corners, r repository.Repository) ([]Corners, error) {
 	for _, f := range files {
 		if f.IsDir() {
 			if f.Name()[0] == '.' {
@@ -193,8 +206,13 @@ func WalkSubdirectories(files []os.FileInfo, folder string, oldSubs map[string]M
 			if ok {
 				maxage, _ = CheckFolderAge(myOutFolder + "/" + name + "/" + "index.json")
 			}
+			for _, path := range invalidatePaths {
+				if strings.HasPrefix(path, folder+"/"+name) {
+					maxage = false
+				}
+			}
 			if !ok || !maxage {
-				subDir, c, err := Walk(name, folder+"/"+name)
+				subDir, c, err := Walk(name, folder+"/"+name, r)
 				if err != nil {
 					printStats(fmt.Errorf("walking through \"%v\" failed: %w", StripLeadingSlash(folder+"/"+name), err))
 					if ok {

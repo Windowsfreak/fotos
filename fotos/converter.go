@@ -1,4 +1,4 @@
-package main
+package fotos
 
 import (
 	"bytes"
@@ -27,6 +27,14 @@ import (
 )
 
 var cl = collate.New(language.German)
+
+var MediaFiles = []string{
+	".gif", ".jpg", ".jpe", ".jpeg", ".jfif", ".png", ".ppm",
+	".cr2", ".dng", ".nef", ".raw", ".arw", ".crw", ".mrw", ".raf", ".webp", ".heic", ".heif",
+	".3gp", ".flv", ".mov", ".qt", ".m2ts", ".mts", ".divx", ".vob", ".webm", ".mkv", ".mka", ".wmv", ".avi", ".mp4",
+	".mpg", ".mpeg", ".ps", ".ts", ".rm", ".ogv", ".dv",
+	".bmp", ".ico", ".tiff", ".bigtiff", ".tiff85", ".pbm", ".pgm", ".dds", ".pcx", ".bpg", ".xbm", ".mac", ".tga", ".lmp",
+}
 
 func Decode(filename string, format string) (m image.Image, err error) {
 	var f *os.File
