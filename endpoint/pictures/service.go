@@ -121,12 +121,13 @@ func (s *service) GetRandomPicture() (domain.PictureResponse, error) {
 			Filename: image,
 		}, err
 	}
-	num, err := repository.ConvertStringToInt64(gallery)
+	segments := strings.Split(gallery, "/")
+	num, err := repository.ConvertStringToInt64(segments[0])
 	if err != nil {
 		return domain.PictureResponse{
 			Gallery:  gallery,
 			Filename: image,
-		}, err
+		}, nil
 	}
 	username, discriminator, err := s.r.Fetch(num)
 	return domain.PictureResponse{
