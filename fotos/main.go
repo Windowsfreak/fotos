@@ -69,7 +69,7 @@ func runCustom(config domain.ConfigStruct, r repository.Repository) {
 			time.Sleep(5 * time.Second)
 		}
 	}()
-	_, _, err := Walk(name, path, r)
+	_, err := Walk(name, path, r)
 	printStats(err)
 	Running = false
 	if Repeat {
@@ -99,7 +99,7 @@ func Main() {
 			time.Sleep(5 * time.Second)
 		}
 	}()
-	_, _, err := Walk(name, path, nil)
+	_, err := Walk(name, path, nil)
 	/*if err != nil {
 		printStats(err)
 	}*/

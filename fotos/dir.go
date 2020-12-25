@@ -49,6 +49,7 @@ func (d *Dir) AddFolder(subDir MinDir) {
 	if d.ModTime.Before(subDir.ModTime) {
 		d.ModTime = subDir.ModTime
 		d.I = subDir.N + "/" + subDir.I
+		d.C = subDir.C
 	}
 }
 func (d *Dir) AddImage(img Img) {
@@ -64,6 +65,7 @@ func (d *Dir) AddImage(img Img) {
 	if d.ModTime.Before(img.ModTime) {
 		d.ModTime = img.ModTime
 		d.I = img.N
+		d.C = img.C
 	}
 }
 func (d *Dir) AddMisc(name string) {
