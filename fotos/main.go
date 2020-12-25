@@ -22,6 +22,7 @@ var (
 	Running                    = false
 	Repeat                     = false
 	RepeatConfig               domain.ConfigStruct
+	rootFolderCaption          = ""
 )
 
 func TryRun(config domain.ConfigStruct, r repository.Repository) {
@@ -53,10 +54,11 @@ func runCustom(config domain.ConfigStruct, r repository.Repository) {
 	invalidatePaths = config.InvalidatePaths
 	stats.Path = config.Path
 	concurrency = make(chan struct{}, config.Threads)
+	rootFolderCaption = config.RootFolderCaption
 	p := strings.Split(path, "/")
 	name := p[len(p)-1]
 	if path == "" {
-		name = "Fotos"
+		name = rootFolderCaption
 	}
 	// feedLines()
 	stats.NoFeed = true
@@ -87,7 +89,7 @@ func Main() {
 	p := strings.Split(path, "/")
 	name := p[len(p)-1]
 	if path == "" {
-		name = "Fotos"
+		name = rootFolderCaption
 	}
 	feedLines()
 	// printStats(nil)
@@ -116,6 +118,7 @@ func shellArguments() (int, string) {
 	excludePtr := flag.String("exclude", "", "excluded folders, comma separated, e.g. snapshot")
 	alwaysProcessRotatedImagesPtr := flag.Bool("always-process-rotated-images", false, "Do not skip unmodified rotated CR2 files")
 	plausibilityPtr := flag.Bool("plausibility", false, "Assume correct rotation when image is upright and requires 90 degree rotation")
+	rootFolderCaptionPtr := flag.String("root", "Fotos", "name root folder, e.g. Fotos")
 	flag.Parse()
 	threads := *threadsPtr
 	inFolder = *inFolderPtr
@@ -124,6 +127,7 @@ func shellArguments() (int, string) {
 	maxAge := *maxAgePtr
 	alwaysProcessRotatedImages = *alwaysProcessRotatedImagesPtr
 	plausibility = *plausibilityPtr
+	rootFolderCaption = *rootFolderCaptionPtr
 	if maxAge > 0 {
 		minFolderDate = time.Now().Add(-maxAge)
 	}

@@ -1,87 +1,22 @@
 <!DOCTYPE HTML>
 <html>
 <head>
+    <title>Roofing.run</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="./node_modules/photoswipe/dist/photoswipe.css">
     <link rel="stylesheet" href="./node_modules/photoswipe/dist/default-skin/default-skin.css">
     <link rel="stylesheet" href="./node_modules/minireset.css/minireset.min.css">
-    <link rel="stylesheet" href="./flex.css">
-    <style>
-        body {
-            background-color: #000;
-            color: #fff;
-        }
-        h2 {
-            font-size: 2em;
-        }
-        h2 a {
-            display: inline-block;
-            border: 1px solid rgba(255,255,255,.3);
-            border-radius: 10px;
-            padding: 5px 10px;
-            text-decoration: none;
-            color: black;
-            background: linear-gradient(to right, #ccc, #fff);
-        }
-        #breadcrumbs a:last-child {
-            background-color: #fff;
-            font-weight: bold;
-        }
-        #folders {
-            display: flex;
-            flex-wrap: wrap;
-        }
-        #folders a {
-            font-size: 0.7em;
-            display: block;
-            width: 100%;
-            max-width: 300px;
-            padding: 10px 10px;
-            background-color: #ccf;
-        }
-        h2 a div {
-            border-radius: 10px;
-            text-shadow: 0 1px 4px #000, 0 1px 8px #000;
-            color: #fff;
-        }
-        h3, p {
-            margin: 10px 10px;
-        }
-        h3 {
-            font-size: 1.2em;
-            justify-content: space-between;
-        }
-        h3:empty, p:empty {
-            margin: unset;
-        }
-        h3:not(:empty):after {
-            content: '';
-            display: block;
-            background: linear-gradient(to right, white, black);
-            height: 1px;
-        }
-        #folders span {
-            font-size: 0.5em;
-            display: block;
-        }
-        .no {
-            background: #f88 !important;
-        }
-        .no * {
-            background: none !important;
-        }
-        body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 1.02em; }
-    </style>
+    <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-<h2 id="breadcrumbs"></h2>
+<div class="banner" onclick="goto(''); return false">
+    <h1>Roofing.run</h1>
+    <p>Roofing all over the world.</p>
+    <span>Now viewing <span id="title">Roofing.Run</span>, click here to return.</span>
+</div>
 <h4 id="date"></h4>
-<h3 id="folders_head"></h3>
 <h2 id="folders"></h2>
-<h3 id="images_head"></h3>
 <div id="images" class="flex-images"></div>
-<h3 id="files_head"></h3>
-<p id="files"></p>
 <script type="javascript">
 </script>
 <script src="./node_modules/javascript-flex-images/flex-images.min.js"></script>
@@ -108,98 +43,42 @@
                     callback();
                 } catch (e) {
                     console.log(e);
-                    xhr.onerror();
+                    xhr.onerror(e);
                 }
             } else {
-                xhr.onerror();
+                xhr.onerror(xhr.response);
             }
         };
-        xhr.onerror = () => { if (target && target.closest) target.closest('a').className = 'no'; }
+        xhr.onerror = e => { console.error(e); if (target && target.closest) target.closest('a').className = 'no'; }
         xhr.send();
     }
+    trySplit = str => str && str.split('#')[0]
     function load(path, json) {
         currentPath = path;
-        setBreadcrumbs(path, json.c, json.d || json.n);
-        document.getElementById('date').innerHTML = caption(json, ['dates']);
-        document.getElementById('folders_head').innerHTML = caption(json, ['folders']);
-        document.getElementById('images_head').innerHTML = caption(json, ['images']);
-        document.getElementById('files_head').innerHTML = json.misc && caption(json, ['files']) || '';
-        document.getElementById('files').innerHTML = json.misc && json.misc.map(s=>{
-            const p = document.createElement('p');
-            p.textContent = s;
-            return p.innerHTML;
-        }).join('<br />') || '';
+        document.getElementById('title').innerText = trySplit(json.d) || json.n;
         setFolders(path, json.subs || []);
         setImages(path, json.imgs || []);
         new flexImages({selector: '#images', rowHeight: 200});
     }
-    function drawBox(attrs, data, text) {
+    function drawBox(attrs, data, text, img) {
         const g=a=>[0,6,12,18].map(o=>(a||'0'.repeat(24)).slice(o,o+6)),
-            c=g(data),b=n=>`background:linear-gradient(to right,#${c[n]},#${c[n+1]})`,m='mask:linear-gradient(to bottom,transparent,#fff)'
-        return `<a ${attrs} style="${b(0)};position:relative"><div style="position:absolute;top:0;left:0;width:100%;height:100%;${b(2)};-webkit-${m};${m}"></div><div style="position:relative">${text}</div></a>`;
+            c=g(data),b=n=>`background:linear-gradient(to right,#${c[n]},#${c[n+1]})`,m='mask:linear-gradient(to bottom,transparent,#fff)',
+            i=img ? `<img src="${img}" style="position:absolute;top:0;left:0;width:100%;height:100%"/>` : ''
+        return `<a ${attrs} style="${b(0)};position:relative"><div style="position:absolute;top:0;left:0;width:100%;height:100%;${b(2)};-webkit-${m};${m}"></div>${i}<div style="position:relative"><div>${text}</div></div></a>`;
     }
     const utc = {timeZone: 'UTC'}
     const day = {...utc, day: '2-digit'}
     const withMonth = {...day, month: '2-digit'}
-    const longMonth = {...utc, month: 'long', year: 'numeric'}
     const fullDate = {...withMonth, year: 'numeric'};
     const time = {...utc, hour: '2-digit', minute: '2-digit', second: '2-digit'}
     const fullString = {...fullDate, ...time}
-    const dateRange = (from, to) => {
-        from = new Date(from);
-        to = new Date(to);
-        if (from.getUTCFullYear() === to.getUTCFullYear()) {
-            if (from.getUTCMonth() === to.getUTCMonth()) {
-                if (from.getUTCDate() === to.getUTCDate()) {
-                    return from.toLocaleString('de-DE', fullString) + ' - ' +
-                        to.toLocaleTimeString('de-DE', time);
-                }
-                return from.toLocaleDateString('de-DE', day) + '. - ' +
-                    to.toLocaleDateString('de-DE', day) + '. ' +
-                    from.toLocaleDateString('de-DE', longMonth);
-            }
-            return from.toLocaleDateString('de-DE', withMonth) + ' - ' +
-                to.toLocaleDateString('de-DE', fullDate);
-        }
-        return from.toLocaleDateString('de-DE', fullDate) + ' - ' +
-            to.toLocaleDateString('de-DE', fullDate);
-    }
-    const dateStr = date => new Date(date).toLocaleString('de-DE', fullString);
-    function setBreadcrumbs(file, c, d) {
-        let str = '';
-        let path = '';
-        const append = (folder, path) => {
-            if (path === file) {
-                str += drawBox(`onclick="goto('${path}'); return false" href="#"`, c, d);
-            } else {
-                str += `<a onclick="goto('${path}'); return false" href="#">${folder}</a>`;
-            }
-        }
-        append('&#x1f3e0;', '');
-        if (file) {
-            file.split('/').forEach(folder => {
-                path += folder;
-                append(folder, path);
-                path += '/';
-            });
-        }
-        document.getElementById('breadcrumbs').innerHTML = str;
-    }
+    const dateStr = date => new Date(date).toLocaleString(undefined, fullString);
     plural = (x, sg, pl) => `${x || 0} ${sg}` + (x !== 1 ? pl : '');
-    function caption(folder, elements = ['images', 'files', 'folders', 'dates']) {
-        const i = [];
-        elements.includes('images') && folder.images && i.push(plural(folder.images, 'Foto', 's'))
-        const files = !folder.subs && folder.files || (folder.misc && folder.misc.length) || 0;
-        elements.includes('files') && files && i.push(plural(files, 'Datei', 'en'))
-        const i_str = i.length ? '<span>' + i.join(', ') + '</span>' : ''
-        return i_str +
-            (elements.includes('folders') && folder.folders ? `<span>${folder.totalImages ? plural(folder.totalImages, 'Foto', 's') + ' in ' + plural(folder.folders, 'Ordner', 'n') : `enthält ${folder.folders} Ordner`}</span>` : '') +
-            (elements.includes('dates') && folder.newest !== '0001-01-01T00:00:00Z' ? `<span>${dateRange(folder.oldest, folder.newest)}</span>` : '');
-    }
+    caption = folder => `<span>${new Date(folder.m).toLocaleString(undefined, {...utc, month: 'long', year: 'numeric'})}</span>`;
     function setFolders(file, folders) {
         var str = '';
         folders.forEach(folder => {
-            str += drawBox(`onclick="goto('${file ? file + '/' : ''}${folder.n}'); return false" href="#"`, folder.c, (folder.d || folder.n) + caption(folder));
+            str += drawBox(`onclick="goto('${file ? file + '/' : ''}${folder.n}'); return false" href="#"`, folder.c, (trySplit(folder.d) || folder.n) + caption(folder), fixPath(root+(file ? file + '/' : '')+folder.n+'/'+folder.i+'.h.webp'));
         });
         document.getElementById('folders').innerHTML = str;
     }
@@ -210,7 +89,10 @@
             str += drawBox(`class="item" href="${fixPath(root+file+'/'+image.n)}.h.webp"\
             data-id="${image.n}"\
             data-w="${image.w}"\
-            data-h="${image.h}" data-name="${image.n}"`, image.c, `<img src="${fixPath(root+file+'/'+image.n)}.s.webp">`);
+            data-h="${image.h}"\
+            data-name="${image.n}"\
+            data-year="${new Date(image.d).toLocaleString(undefined, {...utc, month: 'long', year: 'numeric'})}"\
+            `, image.c, '', `${fixPath(root+file+'/'+image.n)}.s.webp`);
             imgs.push({
                 src: `${fixPath(root+file+'/'+image.n)}.h.webp`,
                 download: `${fixPath(original+file+'/'+image.n)}`,

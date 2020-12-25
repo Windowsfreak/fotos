@@ -8,3 +8,4 @@ AlwaysProcessRotatedImages: false
 Plausibility: true
 ServerAddr: ":40715"
 PreSharedKey: "super-secret-and-unguessable"
+RootFolderCaption: "Photos"

@@ -43,5 +43,6 @@ type ConfigStruct struct {
 	Plausibility               bool          `yaml:"Plausibility"`
 	ServerAddr                 string        `yaml:"ServerAddr"`
 	PreSharedKey               string        `yaml:"PreSharedKey"`
+	RootFolderCaption          string        `yaml:"RootFolderCaption"`
 	InvalidatePaths            []string      `yaml:"InvalidatePaths"`
 }
