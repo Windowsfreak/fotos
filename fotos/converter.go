@@ -153,16 +153,16 @@ func Rotate(in image.Image, o int) image.Image {
 	return out
 }
 
-func CheckFileAge(in os.FileInfo, outFile string) (bool, error) {
+func CheckFileAge(in os.FileInfo, outFile string) (bool, time.Time, error) {
 	out, err := os.Stat(outFile + ".s.webp")
 	if err != nil {
-		return false, fmt.Errorf("stat \"%v.s.webp\" failed: %w", outFile, err)
+		return false, in.ModTime(), fmt.Errorf("stat \"%v.s.webp\" failed: %w", outFile, err)
 	}
-	return math.Abs(in.ModTime().Sub(out.ModTime()).Seconds()) < float64(5*time.Second), nil
+	return math.Abs(in.ModTime().Sub(out.ModTime()).Seconds()) < float64(5*time.Second), in.ModTime(), nil
 }
 
 func Run(inFile string, outFile string, fileInfo os.FileInfo) (Img, error) {
-	img, mod, err := Info(inFile, fileInfo)
+	img, err := Info(inFile, fileInfo)
 	if img.N == "" {
 		return img, fmt.Errorf("empty image information: %w", err)
 	}
@@ -197,13 +197,13 @@ func Run(inFile string, outFile string, fileInfo os.FileInfo) (Img, error) {
 	if err := EncodeWebP(large, outFile+".h.webp", 60); err != nil {
 		return img, fmt.Errorf("encode image \"%v.h.webp\" failed: %w", outFile, err)
 	}
-	_ = os.Chtimes(outFile+".h.webp", mod, mod)
+	_ = os.Chtimes(outFile+".h.webp", img.ModTime, img.ModTime)
 	small := Thumb(large, 400, 200)
 	large = nil
 	if err := EncodeWebP(small, outFile+".s.webp", 20); err != nil {
 		return img, fmt.Errorf("encode image \"%v.s.webp\" failed: %w", outFile, err)
 	}
-	_ = os.Chtimes(outFile+".s.webp", mod, mod)
+	_ = os.Chtimes(outFile+".s.webp", img.ModTime, img.ModTime)
 	pico := Thumb(small, 4, 4)
 	img.C = ImageCorners(pico)
 	return img, nil

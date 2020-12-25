@@ -118,7 +118,7 @@ func Walk(name string, folder string, r repository.Repository) (Dir, Corners, er
 	}
 	myCorners := SumCorners(corners)
 	myDir.C = myCorners.String()
-	myDir.Sort()
+	myDir.SortByModifiedDesc()
 	txt, _ := json.Marshal(myDir)
 	err = ioutil.WriteFile(myOutFolder+"/index.json", txt, os.ModePerm)
 	return myDir, myCorners, err
@@ -136,11 +136,11 @@ func WalkFiles(files []os.FileInfo, oldImgs map[string]Img, myInFolder string, m
 			var img Img
 			var ok bool
 			if img, ok = oldImgs[name]; ok {
-				ok, _ = CheckFileAge(f, myOutFolder+"/"+name)
+				ok, img.ModTime, _ = CheckFileAge(f, myOutFolder+"/"+name)
 				if alwaysProcessRotatedImages {
 					format := strings.ToLower(filepath.Ext(name))
 					if format == ".cr2" {
-						img, _, err := Info(myInFolder+"/"+name, f)
+						img, err := Info(myInFolder+"/"+name, f)
 						if err == nil && img.Orientation > 1 {
 							ok = false
 						}

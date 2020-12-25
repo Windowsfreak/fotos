@@ -45,6 +45,71 @@ of each file. GPS coordinates and averaged edge colors are generated.
 This script can start where it had left off and will read existing
 index.json files and thumbnails and check their modify dates.
 
+## REST Server
+
+This release is baked into a REST server that is listening to requests
+to create and delete files programmatically based on query parameters.
+
+### /pictures/add
+**Using GET:**
+
+Available query parameters:
+
+<dl>
+  <dt><strong>token (Required!)</strong></dt>
+  <dd>A pre-shared key to authenticate a discord bot against the server</dd>
+  <dt><strong>id (Required!)</strong></dt>
+  <dd>64-bit unsigned integer id field for the discord user id</dd>
+  <dt><strong>username (Required!)</strong></dt>
+  <dd>Username to be displayed in the image viewer</dd>
+  <dt><strong>discriminator (Required!)</strong></dt>
+  <dd>Discriminator to be displayed in the image viewer</dd>
+  <dt><strong>url (Required!)</strong></dt>
+  <dd>Path to a file to be downloaded into the discord user's gallery</dd>
+</dl>
+
+For example: Calling the following URL
+will add a bird into the Björn Eberhardt's gallery.
+
+    /pictures/add?token=TOP-SECRET&id=215568977756291072&username=Bj%C3%B6rn Eberhardt&discriminator=2964&url=https://i.imgur.com/XsTeOCT.jpg
+
+**Using POST:**
+
+Refer to this example object to construct your request object:
+
+```json
+{
+  "userId": "215568977756291072",
+  "userName": "Björn Eberhardt",
+  "discriminator": "2964",
+  "gallery": "215568977756291072",
+  "url": "https://i.imgur.com/XsTeOCT.jpg",
+  "preSharedKey": "TOP-SECRET"
+}
+```
+
+### /pictures/del
+
+This command will delete a picture. If a gallery contains no
+files, the entire gallery will be deleted.
+
+### /pictures/random
+
+This command takes no arguments and returns a JSON with data
+about a randomly picked image. Example:
+
+```json
+{
+  "userId": "215568977756291072/",
+  "userName": "Björn Eberhardt",
+  "discriminator": "2964",
+  "gallery": "215568977756291072/",
+  "filename": "XsTeOCT-abcde.jpg"
+}
+```
+
+## Getting started
+
 **Dependencies:**
 
 - cgo (needs to be enabled)
@@ -54,9 +119,19 @@ index.json files and thumbnails and check their modify dates.
 - golang 1.14.3
 - all the other letters in the alphabet
 
+**Set up the vendor folder:**
+
+- Run this. [Why? Read here.](https://github.com/nomad-software/vend)
+  ```shell
+  go get github.com/nomad-software/vend`. 
+  $GOPATH/bin/vend
+  ```
+
 **Run:**
 
-- Compile with `./go build`
-- Run `./fotos --help`.
+- Run `cp config.example.yml config.yml`
+- Edit your `config.yml` to suit your needs.
+- Compile with `go build fotos/server/main`
+- Run `./main --help`.
 
 > ***<span style="color:red !important">This tool can delete folders and files so carefully check your program arguments</span>***

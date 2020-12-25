@@ -13,12 +13,23 @@ type Dir struct {
 	Misc []string `json:"misc,omitempty"`
 }
 
-func (d *Dir) Sort() {
+func (d *Dir) SortByName() {
 	sort.SliceStable(d.Subs, func(i, j int) bool {
 		return cl.CompareString(d.Subs[i].N, d.Subs[j].N) < 0
 	})
 	sort.SliceStable(d.Imgs, func(i, j int) bool {
 		return cl.CompareString(d.Imgs[i].N, d.Imgs[j].N) < 0
+	})
+	sort.SliceStable(d.Misc, func(i, j int) bool {
+		return cl.CompareString(d.Misc[i], d.Misc[j]) < 0
+	})
+}
+func (d *Dir) SortByModifiedDesc() {
+	sort.SliceStable(d.Subs, func(i, j int) bool {
+		return d.Subs[i].ModTime.After(d.Subs[j].ModTime)
+	})
+	sort.SliceStable(d.Imgs, func(i, j int) bool {
+		return d.Imgs[i].ModTime.After(d.Imgs[j].ModTime)
 	})
 	sort.SliceStable(d.Misc, func(i, j int) bool {
 		return cl.CompareString(d.Misc[i], d.Misc[j]) < 0
@@ -35,6 +46,10 @@ func (d *Dir) AddFolder(subDir MinDir) {
 	if d.Newest.Before(subDir.Newest) {
 		d.Newest = subDir.Newest
 	}
+	if d.ModTime.Before(subDir.ModTime) {
+		d.ModTime = subDir.ModTime
+		d.I = subDir.N + "/" + subDir.I
+	}
 }
 func (d *Dir) AddImage(img Img) {
 	d.Imgs = append(d.Imgs, img)
@@ -45,6 +60,10 @@ func (d *Dir) AddImage(img Img) {
 	}
 	if d.Newest.Before(img.D) {
 		d.Newest = img.D
+	}
+	if d.ModTime.Before(img.ModTime) {
+		d.ModTime = img.ModTime
+		d.I = img.N
 	}
 }
 func (d *Dir) AddMisc(name string) {
@@ -68,6 +87,7 @@ func (d Dir) MakeOld() OldDir {
 type MinDir struct {
 	D           string    `json:"d"`
 	N           string    `json:"n"`
+	I           string    `json:"i"`
 	Files       int       `json:"files,omitempty"`
 	Folders     int       `json:"folders,omitempty"`
 	Images      int       `json:"images,omitempty"`
@@ -75,6 +95,7 @@ type MinDir struct {
 	Oldest      time.Time `json:"oldest,omitempty"`
 	Newest      time.Time `json:"newest,omitempty"`
 	C           string    `json:"c"`
+	ModTime     time.Time `json:"m,omitempty"`
 }
 
 type OldDir struct {

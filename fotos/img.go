@@ -23,12 +23,13 @@ type Img struct {
 	Orientation int       `json:"-"`
 	ExifW       int       `json:"-"`
 	ExifH       int       `json:"-"`
+	ModTime     time.Time `json:"-"`
 }
 
-func Info(filename string, info os.FileInfo) (img Img, mod time.Time, err error) {
+func Info(filename string, info os.FileInfo) (img Img, err error) {
 	img.N = norm.NFC.String(info.Name())
 	img.D = info.ModTime().Add(time.Duration(-info.ModTime().Nanosecond()))
-	mod = info.ModTime()
+	img.ModTime = info.ModTime()
 	cmd := exec.Command("exiftool", "-T", "-datetimeoriginal", "-orientation", "-gps:GPSLatitude", "-gps:GPSLongitude", "-imagewidth", "-imageheight", "-n", filename)
 	out, err := cmd.StdoutPipe()
 	if err != nil {
