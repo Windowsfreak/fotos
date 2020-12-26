@@ -63,8 +63,8 @@
     function drawBox(attrs, data, text, img) {
         const g=a=>[0,6,12,18].map(o=>(a||'0'.repeat(24)).slice(o,o+6)),
             c=g(data),b=n=>`background:linear-gradient(to right,#${c[n]},#${c[n+1]})`,m='mask:linear-gradient(to bottom,transparent,#fff)',
-            i=img ? `<img src="${img}" style="position:absolute;top:0;left:0;width:100%;height:100%"/>` : ''
-        return `<a ${attrs} style="${b(0)};position:relative"><div style="position:absolute;top:0;left:0;width:100%;height:100%;${b(2)};-webkit-${m};${m}"></div>${i}<div style="position:relative"><div>${text}</div></div></a>`;
+            i=img ? `<img src="${img}"/>` : ''
+        return `<a ${attrs} style="${b(0)};position:relative"><div style="${b(2)};-webkit-${m};${m}"></div>${i}<div style="position:relative"><div>${text}</div></div></a>`;
     }
     const utc = {timeZone: 'UTC'}
     const day = {...utc, day: '2-digit'}
