@@ -68,7 +68,7 @@ func validateAddPictureRequest(msg domain.AddPictureRequest) error {
 	if !strings.HasPrefix(msg.Url, "http") {
 		return domain.ErrUrlProtocol
 	}
-	if !containsString(fotos.MediaFiles, path.Ext(msg.Url)) {
+	if !containsString(fotos.MediaFiles, strings.ToLower(path.Ext(msg.Url))) {
 		return domain.ErrUrlUnsupportedExt
 	}
 	if !re.MatchString(msg.Gallery) || len(msg.Gallery) < 1 {
