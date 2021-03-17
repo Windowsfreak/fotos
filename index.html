@@ -1,6 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 <head>
+    <meta charset="utf-8">
     <title>Roofing.run</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="./node_modules/photoswipe/dist/photoswipe.css">
@@ -12,9 +13,9 @@
 <div class="banner" onclick="goto(''); return false">
     <h1>Roofing.run</h1>
     <p>Roofing all over the world.</p>
-    <span>Now viewing <span id="title">Roofing.Run</span>, click here to return.</span>
+    <span id="return">&#171 Return</span>
 </div>
-<h4 id="date"></h4>
+<h4 id="date">Roofing.Run</h4>
 <h2 id="folders"></h2>
 <div id="images" class="flex-images"></div>
 <script type="javascript">
@@ -55,7 +56,13 @@
     trySplit = str => str && str.split('#')[0]
     function load(path, json) {
         currentPath = path;
-        document.getElementById('title').innerText = trySplit(json.d) || json.n;
+        if (currentPath === "") {
+            document.getElementById('return').style.display = 'none';
+            document.getElementById('date').innerHTML = '<a href="https://discord.com/invite/Me253V7"><img src="discord.svg" /></a>';
+        } else {
+            document.getElementById('return').style.display = 'inherit';
+            document.getElementById('date').innerText = trySplit(json.d) || json.n;
+        }
         setFolders(path, json.subs || []);
         setImages(path, json.imgs || []);
         new flexImages({selector: '#images', rowHeight: 200});

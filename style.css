@@ -23,8 +23,9 @@ body {
 }
 .banner > span {
     position: absolute;
-    bottom: 0;
-    left: 0;
+    bottom: 4px;
+    left: 8px;
+    font-size: 2em;
 }
 .banner p {
     text-align: center;
@@ -33,7 +34,7 @@ body {
 #folders {
     display: flex;
     flex-wrap: wrap;
-    padding: 70px 0px;
+    padding: 35px 0px;
     justify-content: center;
 }
 #folders:empty {
@@ -42,6 +43,11 @@ body {
 h2 a {
     text-decoration: none;
     display: inline-block;
+}
+h4 {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 2em;
 }
 #folders a {
     box-sizing: content-box;
