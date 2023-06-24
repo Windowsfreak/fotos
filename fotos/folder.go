@@ -11,8 +11,6 @@ import (
 	"time"
 
 	"golang.org/x/text/unicode/norm"
-
-	"fotos/repository"
 )
 
 func getInfo(folder string) (OldDir, error) {
@@ -51,7 +49,8 @@ func CheckFolderAge(name string) (bool, error) {
 	return in.ModTime().After(minFolderDate), nil
 }
 
-func Walk(name string, folder string, r repository.Repository) (Dir, error) {
+func Walk(name string, folder string) (Dir, Corners, error) {
+	var corners []Corners
 	myInFolder := inFolder
 	myOutFolder := outFolder
 	if folder != "" {
@@ -59,37 +58,27 @@ func Walk(name string, folder string, r repository.Repository) (Dir, error) {
 		myInFolder += "/" + folder
 		myOutFolder += "/" + folder
 	}
-	d := name
-	if r != nil {
-		num, err := repository.ConvertStringToInt64(name)
-		if err == nil {
-			username, discriminator, err := r.Fetch(num)
-			if err == nil {
-				d = username + "#" + discriminator
-			}
-		}
-	}
-	myDir := Dir{MinDir: MinDir{D: d, N: name, Oldest: time.Now()}, Path: folder}
+	myDir := Dir{MinDir: MinDir{N: name, Oldest: time.Now()}, Path: folder}
 	if err := os.MkdirAll(myOutFolder, os.ModePerm); err != nil {
-		return myDir, fmt.Errorf("could not create folder structure for \"%v\": %w", myOutFolder, err)
+		return myDir, Corners{}, fmt.Errorf("could not create folder structure for \"%v\": %w", myOutFolder, err)
 	}
 	files, err := ioutil.ReadDir(myInFolder)
 	if err != nil {
-		return myDir, fmt.Errorf("could not list contents of folder \"%v\": %w", myInFolder, err)
+		return myDir, Corners{}, fmt.Errorf("could not list contents of folder \"%v\": %w", myInFolder, err)
 	}
 	oldDir, _ := getInfo(folder)
-	err = WalkSubdirectories(files, folder, oldDir.Subs, myOutFolder, &myDir, r)
+	corners, err = WalkSubdirectories(files, folder, oldDir.Subs, myOutFolder, &myDir, corners)
 	if err != nil {
-		return myDir, err
+		return myDir, Corners{}, err
 	}
 	stats.CurrentFolder = myInFolder
 	stats.CurrentFolderFiles = len(files)
 	stats.CurrentFolderProgress = 0
-	WalkFiles(files, oldDir.Imgs, myInFolder, myOutFolder, &myDir)
+	corners = WalkFiles(files, oldDir.Imgs, myInFolder, myOutFolder, &myDir, corners)
 	newDir := myDir.MakeOld()
 	for k := range oldDir.Subs {
 		if strings.ReplaceAll(k, "/", "") == "" || strings.Contains(k, "/") {
-			return myDir, fmt.Errorf("invalid Subs entry found in old index.json in folder \"%v\"", myOutFolder)
+			return myDir, Corners{}, fmt.Errorf("invalid Subs entry found in old index.json in folder \"%v\"", myOutFolder)
 		}
 		if _, ok := newDir.Subs[k]; !ok {
 			folder := myOutFolder + "/" + k
@@ -101,7 +90,7 @@ func Walk(name string, folder string, r repository.Repository) (Dir, error) {
 	}
 	for k := range oldDir.Imgs {
 		if strings.ReplaceAll(k, "/", "") == "" || strings.Contains(k, "/") {
-			return myDir, fmt.Errorf("invalid Imgs entry found in old index.json in folder \"%v\"", myOutFolder)
+			return myDir, Corners{}, fmt.Errorf("invalid Imgs entry found in old index.json in folder \"%v\"", myOutFolder)
 		}
 		if _, ok := newDir.Imgs[k]; !ok {
 			file := myOutFolder + "/" + k
@@ -115,13 +104,15 @@ func Walk(name string, folder string, r repository.Repository) (Dir, error) {
 			}
 		}
 	}
-	myDir.SortByModifiedDesc()
+	myCorners := SumCorners(corners)
+	myDir.C = myCorners.String()
+	myDir.SortByName()
 	txt, _ := json.Marshal(myDir)
-	err = ioutil.WriteFile(myOutFolder+"/index.json", txt, os.ModePerm)
-	return myDir, err
+	err = os.WriteFile(myOutFolder+"/index.json", txt, os.ModePerm)
+	return myDir, myCorners, err
 }
 
-func WalkFiles(files []os.FileInfo, oldImgs map[string]Img, myInFolder string, myOutFolder string, myDir *Dir) {
+func WalkFiles(files []os.FileInfo, oldImgs map[string]Img, myInFolder string, myOutFolder string, myDir *Dir, corners []Corners) []Corners {
 	var wg sync.WaitGroup
 	for _, f := range files {
 		name := norm.NFC.String(f.Name())
@@ -146,6 +137,9 @@ func WalkFiles(files []os.FileInfo, oldImgs map[string]Img, myInFolder string, m
 			}
 			if ok {
 				myDir.AddImage(img)
+				if c, err := NewCorners(img.C); err == nil {
+					corners = append(corners, c)
+				}
 				stats.BytesSkipped += f.Size()
 				stats.ImagesSkipped++
 			} else {
@@ -169,6 +163,9 @@ func WalkFiles(files []os.FileInfo, oldImgs map[string]Img, myInFolder string, m
 						myDir.Files++
 					} else {
 						myDir.AddImage(img)
+						if c, err := NewCorners(img.C); err == nil {
+							corners = append(corners, c)
+						}
 						stats.ImagesProcessed++
 					}
 				}(f, name)
@@ -178,9 +175,10 @@ func WalkFiles(files []os.FileInfo, oldImgs map[string]Img, myInFolder string, m
 		}
 	}
 	wg.Wait()
+	return corners
 }
 
-func WalkSubdirectories(files []os.FileInfo, folder string, oldSubs map[string]MinDir, myOutFolder string, myDir *Dir, r repository.Repository) error {
+func WalkSubdirectories(files []os.FileInfo, folder string, oldSubs map[string]MinDir, myOutFolder string, myDir *Dir, corners []Corners) ([]Corners, error) {
 	for _, f := range files {
 		if f.IsDir() {
 			if f.Name()[0] == '.' {
@@ -202,21 +200,25 @@ func WalkSubdirectories(files []os.FileInfo, folder string, oldSubs map[string]M
 				}
 			}
 			if !ok || !maxage {
-				subDir, err := Walk(name, folder+"/"+name, r)
+				subDir, c, err := Walk(name, folder+"/"+name)
 				if err != nil {
 					printStats(fmt.Errorf("walking through \"%v\" failed: %w", StripLeadingSlash(folder+"/"+name), err))
 					if ok {
-						return err
+						return nil, err
 					}
 				}
 				myDir.AddFolder(subDir.MinDir)
+				corners = append(corners, c)
 				stats.FoldersProcessed++
 			} else {
 				dir := oldSubs[name]
 				myDir.AddFolder(dir)
+				c, _ := NewCorners(dir.C)
+				c.Multiply(uint64(dir.TotalImages))
+				corners = append(corners, c)
 				stats.FoldersSkipped++
 			}
 		}
 	}
-	return nil
+	return corners, nil
 }

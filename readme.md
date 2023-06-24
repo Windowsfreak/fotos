@@ -37,7 +37,7 @@ together with a HTTPS-only web server.
 
 The preview files generator walks through a source directory tree,
 mirrors the folder structure to the destination path, and for each
-pho.to file it encounters, a pho.to.h.webp and a pho.to.s.webp is
+pho.to file it encounters, a pho.to.h.jxl and a pho.to.s.jxl is
 generated. The generator will place an index.json file into each
 directory that contains the date taken, the dimensions and the name
 of each file. GPS coordinates and averaged edge colors are generated.
@@ -123,7 +123,7 @@ about a randomly picked image. Example:
 
 - Run this. [Why? Read here.](https://github.com/nomad-software/vend)
   ```shell
-  go get github.com/nomad-software/vend`. 
+  go get github.com/nomad-software/vend 
   $GOPATH/bin/vend
   ```
 

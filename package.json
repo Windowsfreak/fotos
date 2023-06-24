@@ -5,8 +5,9 @@
   "main": "index.js",
   "dependencies": {
     "javascript-flex-images": "^1.0.2",
-    "minireset.css": "0.0.6",
-    "photoswipe": "^4.1.3"
+    "minireset.css": "^0.0.7",
+    "photoswipe": "^5.3.6",
+    "jxl.js": "git+https://github.com/niutech/jxl.js"
   },
   "devDependencies": {},
   "scripts": {

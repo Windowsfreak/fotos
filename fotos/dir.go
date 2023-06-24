@@ -87,7 +87,6 @@ func (d Dir) MakeOld() OldDir {
 }
 
 type MinDir struct {
-	D           string    `json:"d"`
 	N           string    `json:"n"`
 	I           string    `json:"i"`
 	Files       int       `json:"files,omitempty"`

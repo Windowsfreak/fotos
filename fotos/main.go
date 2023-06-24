@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"fotos/domain"
-	"fotos/repository"
 )
 
 var (
@@ -25,7 +24,7 @@ var (
 	rootFolderCaption          = ""
 )
 
-func TryRun(config domain.ConfigStruct, r repository.Repository) {
+func TryRun(config domain.ConfigStruct) {
 	if Running {
 		Repeat = true
 		i := RepeatConfig.InvalidatePaths
@@ -35,11 +34,11 @@ func TryRun(config domain.ConfigStruct, r repository.Repository) {
 		}
 		RepeatConfig.InvalidatePaths = i
 	} else {
-		runCustom(config, r)
+		runCustom(config)
 	}
 }
 
-func runCustom(config domain.ConfigStruct, r repository.Repository) {
+func runCustom(config domain.ConfigStruct) {
 	if config.MaxAge > 0 {
 		minFolderDate = time.Now().Add(-config.MaxAge)
 	}
@@ -60,7 +59,6 @@ func runCustom(config domain.ConfigStruct, r repository.Repository) {
 	if path == "" {
 		name = rootFolderCaption
 	}
-	// feedLines()
 	stats.NoFeed = true
 	stats.StartTime = time.Now()
 	printStats(nil)
@@ -71,14 +69,14 @@ func runCustom(config domain.ConfigStruct, r repository.Repository) {
 			time.Sleep(5 * time.Second)
 		}
 	}()
-	_, err := Walk(name, path, r)
+	_, _, err := Walk(name, path)
 	printStats(err)
 	Running = false
 	if Repeat {
 		Repeat = false
 		c := RepeatConfig
 		RepeatConfig.InvalidatePaths = []string{}
-		runCustom(c, r)
+		runCustom(c)
 	}
 }
 
@@ -92,7 +90,6 @@ func Main() {
 		name = rootFolderCaption
 	}
 	feedLines()
-	// printStats(nil)
 	running := true
 	go func() {
 		time.Sleep(5 * time.Second)
@@ -101,10 +98,7 @@ func Main() {
 			time.Sleep(5 * time.Second)
 		}
 	}()
-	_, err := Walk(name, path, nil)
-	/*if err != nil {
-		printStats(err)
-	}*/
+	_, _, err := Walk(name, path)
 	printStats(err)
 	running = false
 }

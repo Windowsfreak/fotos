@@ -1,35 +1,50 @@
 package domain
 
-import "time"
+import (
+	"io"
+	"time"
+)
 
 type Error struct {
 	ErrorMessage string `json:"errorMessage"`
 }
 
-type AddPictureRequest struct {
-	UserId        string `json:"userId"`
-	UserName      string `json:"userName"`
-	Discriminator string `json:"discriminator"`
-	Gallery       string `json:"gallery"`
-	Url           string `json:"url"`
-	PreSharedKey  string `json:"preSharedKey"`
+type AddImageRequest struct {
+	Folder       string `json:"folder"`
+	Url          string `json:"url"`
+	PreSharedKey string `json:"preSharedKey"`
 }
 
-type DeletePictureRequest struct {
-	UserId        string `json:"userId"`
-	UserName      string `json:"userName"`
-	Discriminator string `json:"discriminator"`
-	Gallery       string `json:"gallery"`
-	Filename      string `json:"filename"`
-	PreSharedKey  string `json:"preSharedKey"`
+type UploadImageRequest struct {
+	File         io.Reader `json:"filename"`
+	Folder       string    `json:"folder"`
+	Filename     string    `json:"filename"`
+	Url          string    `json:"url"`
+	PreSharedKey string    `json:"preSharedKey"`
 }
 
-type PictureResponse struct {
-	UserId        string `json:"userId"`
-	UserName      string `json:"userName"`
-	Discriminator string `json:"discriminator"`
-	Gallery       string `json:"gallery"`
-	Filename      string `json:"filename"`
+type DeleteImageRequest struct {
+	Folder       string `json:"folder"`
+	Filename     string `json:"filename"`
+	PreSharedKey string `json:"preSharedKey"`
+}
+
+type GetImageRequest struct {
+	Folder       string `json:"folder"`
+	Filename     string `json:"filename"`
+	PreSharedKey string `json:"preSharedKey"`
+}
+
+type GetThumbnailRequest struct {
+	Folder       string `json:"folder"`
+	Filename     string `json:"filename"`
+	Size         int    `json:"size"`
+	PreSharedKey string `json:"preSharedKey"`
+}
+
+type ImageResponse struct {
+	Folder   string `json:"folder"`
+	Filename string `json:"filename"`
 }
 
 type ConfigStruct struct {

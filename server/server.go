@@ -12,8 +12,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"fotos/domain"
-	"fotos/endpoint/pictures"
-	"fotos/repository"
+	"fotos/endpoint/images"
 )
 
 // Run starts the HTTP server
@@ -68,14 +67,10 @@ func setUpServer() http.Handler {
 	mux := http.NewServeMux()
 
 	picturesLogger := log.WithField("endpoint", "fotos")
-	picturesRepository, err := repository.NewRepository()
-	if err != nil {
-		picturesLogger.Fatal(err)
-	}
-	picturesService := pictures.NewService(picturesLogger, picturesRepository)
-	mux.Handle("/pictures/add", pictures.MakeAddPictureHandler(picturesService, picturesLogger))
-	mux.Handle("/pictures/del", pictures.MakeDeletePictureHandler(picturesService, picturesLogger))
-	mux.Handle("/pictures/random", pictures.MakeGetRandomPictureHandler(picturesService, picturesLogger))
+	picturesService := images.NewService(picturesLogger)
+	mux.Handle("/api/add", images.MakeAddImageHandler(picturesService, picturesLogger))
+	mux.Handle("/api/del", images.MakeDeleteImageHandler(picturesService, picturesLogger))
+	mux.Handle("/api/random", images.MakeGetRandomImageHandler(picturesService, picturesLogger))
 
 	return mux
 }

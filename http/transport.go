@@ -72,3 +72,12 @@ func EncodeResponse(ctx context.Context, w http.ResponseWriter, response interfa
 	}
 	return nil
 }
+
+func EncodeBinaryResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
+	if response == nil {
+		return nil
+	}
+	// Write the image to the response.
+	_, err := io.Copy(w, response.(io.Reader))
+	return err
+}

@@ -2,227 +2,271 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Roofing.run</title>
+    <title>Fotos</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="./node_modules/photoswipe/dist/photoswipe.css">
-    <link rel="stylesheet" href="./node_modules/photoswipe/dist/default-skin/default-skin.css">
     <link rel="stylesheet" href="./node_modules/minireset.css/minireset.min.css">
     <link rel="stylesheet" href="./style.css">
+    <!--<script src="./node_modules/jxl.js/jxl.min.js"></script>-->
 </head>
 <body>
-<div class="banner" onclick="goto(''); return false">
-    <h1>Roofing.run</h1>
-    <p>Roofing all over the world.</p>
-    <span id="return">&#171 Return</span>
-</div>
-<h4 id="date">Roofing.Run</h4>
+<h2 id="breadcrumbs"></h2>
+<h4 id="date"></h4>
+<h3 id="folders_head"></h3>
 <h2 id="folders"></h2>
+<h3 id="images_head"></h3>
 <div id="images" class="flex-images"></div>
-<script type="javascript">
-</script>
+<h3 id="files_head"></h3>
+<p id="files"></p>
 <script src="./node_modules/javascript-flex-images/flex-images.min.js"></script>
-<script>
-</script>
-<script src="./node_modules/photoswipe/dist/photoswipe.min.js"></script>
-<script src="./node_modules/photoswipe/dist/photoswipe-ui-default.min.js"></script>
-<script>
-    const root = './images/Website/';
-    const original = './images/Original/';
-    let currentPath;
-    fixPath = path => encodeURI(path.replace('#', '%23'));
-    function goto(path) {
-        const target = event ? event.target : {};
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', fixPath(root + path) + '/index.json');
+<script type="module">
+    import PhotoSwipeLightbox from './node_modules/photoswipe/dist/photoswipe-lightbox.esm.min.js'
+    // Simple fullscreen API
+    const fullscreenAPI = getFullscreenAPI()
+    const pswpContainer = getContainer()
+
+    const root = './images/Website/', original = './images/Original/'
+    let currentPath
+    const fixPath = path => encodeURI(path.replace('#', '%23'))
+    const goto = path => {
+        const target = event ? event.target : {}, xhr = new XMLHttpRequest()
+        xhr.open('GET', fixPath(root + path) + '/index.json')
         xhr.onload = function () {
-            if (this.status >= 200 && this.status < 300) {
-                try {
-                    load(path, JSON.parse(xhr.response));
-                    const x = location.hash.substring(1).split('&');
-                    x[0] = encodeURIComponent(path);
-                    location.hash = x.join('&');
-                    callback();
-                } catch (e) {
-                    console.log(e);
-                    xhr.onerror(e);
-                }
-            } else {
-                xhr.onerror(xhr.response);
-            }
-        };
-        xhr.onerror = e => { console.error(e); if (target && target.closest) target.closest('a').className = 'no'; }
-        xhr.send();
-    }
-    trySplit = str => str && str.split('#')[0]
-    function load(path, json) {
-        currentPath = path;
-        if (currentPath === "") {
-            document.getElementById('return').style.display = 'none';
-            document.getElementById('date').innerHTML = '<a href="https://discord.com/invite/Me253V7"><img src="discord.svg" /></a>';
-        } else {
-            document.getElementById('return').style.display = 'inherit';
-            document.getElementById('date').innerText = trySplit(json.d) || json.n;
+            if (this.status >= 200 && this.status < 300) try {
+                load(path, JSON.parse(xhr.response))
+                const x = location.hash.substring(1).split('&')
+                x[0] = encodeURIComponent(path)
+                location.hash = x.join('&')
+                callback()
+            } catch (e) {
+                xhr.onerror(e)
+            } else xhr.onerror(xhr.response)
         }
-        setFolders(path, json.subs || []);
-        setImages(path, json.imgs || []);
-        new flexImages({selector: '#images', rowHeight: 200});
+        xhr.onerror = e => {
+            console.error(e)
+            if (target && target.closest) target.closest('a').className = 'no'
+        }
+        xhr.send()
     }
-    function drawBox(attrs, data, text, img) {
-        const g=a=>[0,6,12,18].map(o=>(a||'0'.repeat(24)).slice(o,o+6)),
-            c=g(data),b=n=>`background:linear-gradient(to right,#${c[n]},#${c[n+1]})`,m='mask:linear-gradient(to bottom,transparent,#fff)',
-            i=img ? `<img src="${img}" style="position:absolute;top:0;left:0;width:100%;height:100%"/>` : ''
-        return `<a ${attrs} style="${b(0)};position:relative"><div style="position:absolute;top:0;left:0;width:100%;height:100%;${b(2)};-webkit-${m};${m}"></div>${i}<div style="position:relative"><div>${text}</div></div></a>`;
+    const setBreadcrumbs = (file, c) => {
+        let str = '', path = ''
+        const append = (folder, path) => {
+            if (path === file) str += drawBox(`onclick="goto('${path}'); return false" href="#"`, c, folder)
+            else str += `<a onclick="goto('${path}'); return false" href="#">${folder}</a>`
+        }
+        append('&#x1f3e0;', '')
+        if (file) file.split('/').forEach(folder => {
+            path += folder
+            append(folder, path)
+            path += '/'
+        })
+        document.getElementById('breadcrumbs').innerHTML = str
+    }
+    function load(path, json) {
+        currentPath = path
+        setBreadcrumbs(path, json.c)
+        document.getElementById('date').innerHTML = caption(json, ['dates'])
+        document.getElementById('folders_head').innerHTML = caption(json, ['folders'])
+        document.getElementById('images_head').innerHTML = caption(json, ['images'])
+        document.getElementById('files_head').innerHTML = json.misc && caption(json, ['files']) || ''
+        document.getElementById('files').innerHTML = json.misc && json.misc.map(s => {
+            const p = document.createElement('p')
+            p.textContent = s
+            return p.innerHTML
+        }).join('<br />') || ''
+        setFolders(path, json.subs || [])
+        setImages(path, json.imgs || [])
+        new flexImages({selector: '#images', rowHeight: 200})
+    }
+    const drawBox = (attrs, data, text, img) => {
+        const g = a => [0,6,12,18].map(o => (a || '0'.repeat(24)).slice(o, o + 6)),
+            c = g(data), b = n => `background:linear-gradient(to right,#${c[n]},#${c[n + 1]})`, m = 'mask:linear-gradient(to bottom,transparent,#fff)',
+            i = img ? `<img src="${img}" style="position:absolute;top:0;left:0;width:100%;height:100%"/>` : ''
+        return `<a ${attrs} style="${b(0)};position:relative"><div style="position:absolute;top:0;left:0;width:100%;height:100%;${b(2)};-webkit-${m};${m}"></div>${i}<div style="position:relative">${text}</div></a>`
     }
     const utc = {timeZone: 'UTC'}
     const day = {...utc, day: '2-digit'}
     const withMonth = {...day, month: '2-digit'}
-    const fullDate = {...withMonth, year: 'numeric'};
+    const longMonth = {...utc, month: 'long', year: 'numeric'}
+    const fullDate = {...withMonth, year: 'numeric'}
     const time = {...utc, hour: '2-digit', minute: '2-digit', second: '2-digit'}
     const fullString = {...fullDate, ...time}
-    const dateStr = date => new Date(date).toLocaleString(undefined, fullString);
-    plural = (x, sg, pl) => `${x || 0} ${sg}` + (x !== 1 ? pl : '');
-    caption = folder => `<span>${new Date(folder.m).toLocaleString(undefined, {...utc, month: 'long', year: 'numeric'})}</span>`;
+    const formatDate = (date, format) => date.toLocaleString('de-DE', format)
+    const dateRange = (from, to) => {
+        from = new Date(from)
+        to = new Date(to)
+        return from.getUTCFullYear() === to.getUTCFullYear() ?
+            (from.getUTCMonth() === to.getUTCMonth() ?
+                (from.getUTCDate() === to.getUTCDate() ?
+                    `${formatDate(from, fullString)} - ${formatDate(to, time)}` :
+                    `${formatDate(from, day)}. - ${formatDate(to, day)}. ${formatDate(from, longMonth)}`) :
+                `${formatDate(from, withMonth)} - ${formatDate(to, fullDate)}`) :
+            `${formatDate(from, fullDate)} - ${formatDate(to, fullDate)}`
+    }
+    const dateStr = date => formatDate(new Date(date), fullString)
+    const plural = (x, sg, pl) => `${x || 0} ${sg}` + (x !== 1 ? pl : '')
+    function caption(folder, elements = ['images', 'files', 'folders', 'dates']) {
+        const i = []
+        elements.includes('images') && folder.images && i.push(plural(folder.images, 'Foto', 's'))
+        const files = !folder.subs && folder.files || (folder.misc && folder.misc.length) || 0
+        elements.includes('files') && files && i.push(plural(files, 'Datei', 'en'))
+        return (i.length ? '<span>' + i.join(', ') + '</span>' : '') +
+            (elements.includes('folders') && folder.folders ? `<span>${folder.totalImages ? plural(folder.totalImages, 'Foto', 's') + ' in ' + plural(folder.folders, 'Ordner', 'n') : `enthält ${folder.folders} Ordner`}</span>` : '') +
+            (elements.includes('dates') && folder.newest !== '0001-01-01T00:00:00Z' ? `<span>${dateRange(folder.oldest, folder.newest)}</span>` : '')
+    }
     function setFolders(file, folders) {
-        var str = '';
+        let str = ''
         folders.forEach(folder =>
-            (folder.i.length > 0) && (str += drawBox(`onclick="goto('${file ? file + '/' : ''}${folder.n}'); return false" href="#"`, folder.c, (trySplit(folder.d) || folder.n) + caption(folder), fixPath(root+(file ? file + '/' : '')+folder.n+'/'+folder.i+'.h.webp')))
-        );
-        document.getElementById('folders').innerHTML = str;
+            (str += drawBox(`onclick="goto('${file ? file + '/' : ''}${folder.n}'); return false" href="#"`, folder.c, folder.n + caption(folder), fixPath(root+(file ? file + '/' : '')+folder.n+'/'+folder.i+'.h.jxl')))
+        )
+        document.getElementById('folders').innerHTML = str
     }
     function setImages(file, images) {
-        var str = '';
-        var imgs = [];
+        let str = ''
+        const imgs = []
         images.forEach(image => {
-            str += drawBox(`class="item" href="${fixPath(root+file+'/'+image.n)}.h.webp"\
+            str += drawBox(`class="item" href="${fixPath(root+file+'/'+image.n)}.h.jxl"\
             data-id="${image.n}"\
             data-w="${image.w}"\
             data-h="${image.h}"\
             data-name="${image.n}"\
-            `, image.c, '', `${fixPath(root+file+'/'+image.n)}.s.webp`);
+            `, image.c, '', `${fixPath(root+file+'/'+image.n)}.s.jxl`)
             imgs.push({
-                src: `${fixPath(root+file+'/'+image.n)}.h.webp`,
+                src: `${fixPath(root+file+'/'+image.n)}.h.jxl`,
                 download: `${fixPath(original+file+'/'+image.n)}`,
                 w: image.w,
                 h: image.h,
-                title: `${dateStr(image.d)} - ${image.w} x ${image.h}`,
-                msrc: `${fixPath(root+file+'/'+image.n)}.s.webp`,
-                pid: image.n
-            });
-        });
-        window.items = imgs;
-        document.getElementById('images').innerHTML = str;
+                title: `${image.n} - ${dateStr(image.d)} - ${image.w} x ${image.h}`,
+                id: image.n
+            })
+        })
+        window.items = imgs
+        document.getElementById('images').innerHTML = str
+
+        const galleryEl = document.getElementById('images')
+        window.lightbox = new PhotoSwipeLightbox({
+            dataSource: items,
+            pswpModule: () => import('./node_modules/photoswipe/dist/photoswipe.esm.js'),
+
+            // Add function that returns promise
+            openPromise: getFullscreenPromise,
+
+            // Append PhotoSwipe to our container
+            appendToEl: fullscreenAPI ? pswpContainer : document.body,
+
+            // disable opening/closing animations
+            showAnimationDuration: 0,
+            hideAnimationDuration: 0,
+
+            // Add if you're using responsive images since viewport size is unpredictable at initialization:
+            // preloadFirstSlide: false
+        })
+        window.lightbox.addFilter('thumbEl', (thumbEl, data, index) => {
+            const el = galleryEl.querySelector('[data-id="' + data.id + '"] img')
+            if (el) return el
+            return thumbEl
+        })
+        window.lightbox.addFilter('placeholderSrc', (placeholderSrc, slide) => {
+            const el = galleryEl.querySelector('[data-id="' + slide.data.id + '"] img')
+            if (el) return el.src
+            return placeholderSrc
+        })
+        window.lightbox.on('close', () => {
+            pswpContainer.style.display = 'none'
+            if (fullscreenAPI && fullscreenAPI.isFullscreen()) fullscreenAPI.exit()
+        })
+        window.lightbox.init()
     }
     const openImage = event => {
-        var elm = event.target;
-        if (!elm) return;
-        while (elm.className !== 'item') {
-            elm = elm.parentElement;
-        }
-        var pswpElement = document.querySelectorAll('.pswp')[0];
-        var gallery;
-        var options = {
-            index: Array.prototype.indexOf.call(elm.parentElement.children, elm),
-            getThumbBoundsFn: function(index) {
-                const pageYScroll = window.pageYOffset || document.documentElement.scrollTop;
-                // get position of element relative to viewport
-                const rect = elm.parentElement.children[index].getBoundingClientRect();
-                return {x:rect.left, y:rect.top + pageYScroll, w:rect.width};
-            },
-            showAnimationDuration: 100,
-            hideAnimationDuration: 200,
-            galleryPIDs: true,
-            getImageURLForShare: () => gallery.currItem.download || gallery.currItem.src || '',
-        };
-
-        gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, options);
-        gallery.init();
-        return false;
-    };
-    document.getElementById('images').onclick = openImage;
-    update = () => {
-        const path = decodeURIComponent(location.hash.substring(1).split('&')[0]);
+        let elm = event.target
+        while (elm && elm.className !== 'item') elm = elm.parentElement
+        if (!elm) return
+        window.lightbox.loadAndOpen(Array.prototype.indexOf.call(elm.parentElement.children, elm))
+        return false
+    }
+    document.getElementById('images').onclick = openImage
+    const update = () => {
+        const path = decodeURIComponent(location.hash.substring(1).split('&')[0])
         if (path !== currentPath) {
-            goto(path);
+            goto(path)
         }
     }
     const callback = () => {
-        const hash = location.hash.substring(1).split('&');
-        const pid = hash.filter(v => v.startsWith('pid='))[0];
-        if (pid === undefined) return;
-        const pidVal = pid.split('=')[1];
+        const hash = location.hash.substring(1).split('&'), pid = hash.filter(v => v.startsWith('pid='))[0]
+        if (pid === undefined) return
+        const pidVal = pid.split('=')[1]
         openImage({
             target: [...document.getElementsByClassName('item')].filter(item => item.getAttribute('data-id') === pidVal)[0]
         })
     }
-    update();
-    window.onhashchange = update;
+    update()
+    window.goto = goto
+    window.onhashchange = update
+
+    function getFullscreenPromise() {
+        // Always resolve promise, as we want to open lightbox (no matter if fullscreen is supported or not)
+        return new Promise((resolve) => {
+            if (!fullscreenAPI || fullscreenAPI.isFullscreen()) {
+                // fullscreen API not supported, or already fullscreen
+                resolve()
+                return
+            }
+
+            document.addEventListener(fullscreenAPI.change, (event) => {
+                pswpContainer.style.display = 'block'
+                // delay to make sure that browser fullscreen animation is finished
+                setTimeout(() => resolve(), 300)
+            }, { once: true })
+
+            fullscreenAPI.request(pswpContainer)
+        })
+    }
+
+    // Simple fullscreen API helper,
+    // supports unprefixed and webkit-prefixed versions
+    function getFullscreenAPI() {
+        let api, enterFS, exitFS, elementFS, changeEvent, errorEvent
+        if (document.documentElement.requestFullscreen) {
+            enterFS = 'requestFullscreen'
+            exitFS = 'exitFullscreen'
+            elementFS = 'fullscreenElement'
+            changeEvent = 'fullscreenchange'
+            errorEvent = 'fullscreenerror'
+        } else if (document.documentElement.webkitRequestFullscreen) {
+            enterFS = 'webkitRequestFullscreen'
+            exitFS = 'webkitExitFullscreen'
+            elementFS = 'webkitFullscreenElement'
+            changeEvent = 'webkitfullscreenchange'
+            errorEvent = 'webkitfullscreenerror'
+        }
+        if (enterFS) {
+            api = {
+                request(el) {
+                    if (enterFS === 'webkitRequestFullscreen') el[enterFS](Element.ALLOW_KEYBOARD_INPUT)
+                    else el[enterFS]()
+                },
+                exit() {
+                    return document[exitFS]()
+                },
+                isFullscreen() {
+                    return document[elementFS]
+                },
+                change: changeEvent,
+                error: errorEvent
+            }
+        }
+        return api
+    }
+
+    function getContainer() {
+        const pswpContainer = document.createElement('div')
+        pswpContainer.style.background = '#000'
+        pswpContainer.style.width = '100%'
+        pswpContainer.style.height = '100%'
+        pswpContainer.style.display = 'none'
+        document.body.appendChild(pswpContainer)
+        return pswpContainer
+    }
 </script>
-
-<!-- Root element of PhotoSwipe. Must have class pswp. -->
-<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
-
-    <!-- Background of PhotoSwipe.
-         It's a separate element as animating opacity is faster than rgba(). -->
-    <div class="pswp__bg"></div>
-
-    <!-- Slides wrapper with overflow:hidden. -->
-    <div class="pswp__scroll-wrap">
-
-        <!-- Container that holds slides.
-            PhotoSwipe keeps only 3 of them in the DOM to save memory.
-            Don't modify these 3 pswp__item elements, data is added later on. -->
-        <div class="pswp__container">
-            <div class="pswp__item"></div>
-            <div class="pswp__item"></div>
-            <div class="pswp__item"></div>
-        </div>
-
-        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
-        <div class="pswp__ui pswp__ui--hidden">
-
-            <div class="pswp__top-bar">
-
-                <!--  Controls are self-explanatory. Order can be changed. -->
-
-                <div class="pswp__counter"></div>
-
-                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
-
-                <button class="pswp__button pswp__button--share" title="Share"></button>
-
-                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
-
-                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
-
-                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
-                <!-- element will get class pswp__preloader--active when preloader is running -->
-                <div class="pswp__preloader">
-                    <div class="pswp__preloader__icn">
-                        <div class="pswp__preloader__cut">
-                            <div class="pswp__preloader__donut"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
-                <div class="pswp__share-tooltip"></div>
-            </div>
-
-            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
-            </button>
-
-            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
-            </button>
-
-            <div class="pswp__caption">
-                <div class="pswp__caption__center"></div>
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
 </body>
 </html>

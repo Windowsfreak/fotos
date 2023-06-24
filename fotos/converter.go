@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -29,7 +30,7 @@ import (
 var cl = collate.New(language.German)
 
 var MediaFiles = []string{
-	".gif", ".jpg", ".jpe", ".jpeg", ".jfif", ".png", ".ppm",
+	".gif", ".jpg", ".jpe", ".jpeg", ".jfif", ".jxl", ".png", ".ppm",
 	".cr2", ".dng", ".nef", ".raw", ".arw", ".crw", ".mrw", ".raf", ".webp", ".heic", ".heif",
 	".3gp", ".flv", ".mov", ".qt", ".m2ts", ".mts", ".divx", ".vob", ".webm", ".mkv", ".mka", ".wmv", ".avi", ".mp4",
 	".mpg", ".mpeg", ".ps", ".ts", ".rm", ".ogv", ".dv",
@@ -50,6 +51,11 @@ func Decode(filename string, format string) (m image.Image, err error) {
 			return nil, fmt.Errorf("open image \"%v\" failed: %w", filename, err)
 		}
 		return jpeg.Decode(f)
+	case ".jxl":
+		if f, err = os.Open(filename); err != nil {
+			return nil, fmt.Errorf("open image \"%v\" failed: %w", filename, err)
+		}
+		return DecodeJxl(filename)
 	case ".png":
 		if f, err = os.Open(filename); err != nil {
 			return nil, fmt.Errorf("open image \"%v\" failed: %w", filename, err)
@@ -92,6 +98,7 @@ func Decode(filename string, format string) (m image.Image, err error) {
 		return
 	}
 }
+
 func DecodeDcraw(filename string) (image.Image, error) {
 	cmd := exec.Command("dcraw", "-c", filename)
 	var outbuf bytes.Buffer
@@ -102,6 +109,7 @@ func DecodeDcraw(filename string) (image.Image, error) {
 	}
 	return ppm.Decode(bytes.NewReader(outbuf.Bytes()))
 }
+
 func DecodeVideo(filename string) (image.Image, error) {
 	cmd := exec.Command("ffmpeg", "-i", filename, "-ss", "00:00:00.000", "-vframes", "1", "-f", "image2pipe", "-vcodec", "png", "-")
 	var outbuf bytes.Buffer
@@ -112,6 +120,56 @@ func DecodeVideo(filename string) (image.Image, error) {
 	}
 	return png.Decode(bytes.NewReader(outbuf.Bytes()))
 }
+
+func DecodeJxl(filename string) (image.Image, error) {
+	// Create a temporary file to hold the decoded image in PNG format.
+	f, err := os.CreateTemp("", "fotos-*.png")
+	if err != nil {
+		return nil, fmt.Errorf("creating temporary file failed: %w", err)
+	}
+	defer os.Remove(f.Name())
+	defer f.Close()
+
+	// Run the "djxl" command to decode the image and write it to the temporary file in PNG format.
+	cmd := exec.Command("djxl", filename, f.Name())
+	err = cmd.Run()
+	if err != nil {
+		return nil, fmt.Errorf("executing \"djxl %v %v\" failed: %w", filename, f.Name(), err)
+	}
+
+	// Open the temporary file and decode the image from it.
+	f, err = os.Open(f.Name())
+	if err != nil {
+		return nil, fmt.Errorf("open temporary file failed: %w", err)
+	}
+	defer f.Close()
+	return png.Decode(f)
+}
+
+func EncodeJxl(m image.Image, filename string, quality int) error {
+	// Create a temporary file to hold the image in PNG format.
+	f, err := os.CreateTemp("", "fotos-*.png")
+	if err != nil {
+		return fmt.Errorf("creating temporary file failed: %w", err)
+	}
+	defer os.Remove(f.Name())
+	defer f.Close()
+
+	// Encode the image in PNG format and write it to the temporary file.
+	err = png.Encode(f, m)
+	if err != nil {
+		return fmt.Errorf("encoding image in PNG format failed: %w", err)
+	}
+
+	// Run the "cjxl" command to encode the image in JPEG-XL format.
+	cmd := exec.Command("cjxl", f.Name(), filename, "-q", strconv.Itoa(quality))
+	err = cmd.Run()
+	if err != nil {
+		return fmt.Errorf("executing \"cjxl %v %v -q %v\" failed: %w", f.Name(), filename, quality, err)
+	}
+	return nil
+}
+
 func EncodeWebP(m image.Image, filename string, quality float32) error {
 	var buf bytes.Buffer
 	if err := webp.Encode(&buf, m, &webp.Options{Lossless: false, Quality: quality}); err != nil {
@@ -154,9 +212,9 @@ func Rotate(in image.Image, o int) image.Image {
 }
 
 func CheckFileAge(in os.FileInfo, outFile string) (bool, time.Time, error) {
-	out, err := os.Stat(outFile + ".s.webp")
+	out, err := os.Stat(outFile + ".s.jxl")
 	if err != nil {
-		return false, in.ModTime(), fmt.Errorf("stat \"%v.s.webp\" failed: %w", outFile, err)
+		return false, in.ModTime(), fmt.Errorf("stat \"%v.s.jxl\" failed: %w", outFile, err)
 	}
 	return math.Abs(in.ModTime().Sub(out.ModTime()).Seconds()) < float64(5*time.Second), in.ModTime(), nil
 }
@@ -194,16 +252,16 @@ func Run(inFile string, outFile string, fileInfo os.FileInfo) (Img, error) {
 		large = Rotate(large, img.Orientation)
 	}
 	m = nil
-	if err := EncodeWebP(large, outFile+".h.webp", 60); err != nil {
-		return img, fmt.Errorf("encode image \"%v.h.webp\" failed: %w", outFile, err)
+	if err := EncodeJxl(large, outFile+".h.jxl", 60); err != nil {
+		return img, fmt.Errorf("encode image \"%v.h.jxl\" failed: %w", outFile, err)
 	}
-	_ = os.Chtimes(outFile+".h.webp", img.ModTime, img.ModTime)
+	_ = os.Chtimes(outFile+".h.jxl", img.ModTime, img.ModTime)
 	small := Thumb(large, 400, 200)
 	large = nil
-	if err := EncodeWebP(small, outFile+".s.webp", 20); err != nil {
-		return img, fmt.Errorf("encode image \"%v.s.webp\" failed: %w", outFile, err)
+	if err := EncodeJxl(small, outFile+".s.jxl", 20); err != nil {
+		return img, fmt.Errorf("encode image \"%v.s.jxl\" failed: %w", outFile, err)
 	}
-	_ = os.Chtimes(outFile+".s.webp", img.ModTime, img.ModTime)
+	_ = os.Chtimes(outFile+".s.jxl", img.ModTime, img.ModTime)
 	pico := Thumb(small, 4, 4)
 	img.C = ImageCorners(pico)
 	return img, nil

@@ -2,6 +2,7 @@ package fotos
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -35,7 +36,7 @@ func feedLines() {
 
 func printStats(err error) {
 	if !stats.NoFeed {
-		fmt.Print("\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K\033[A\r\033[K")
+		fmt.Print(strings.Repeat("\r\033[K\033[A", 10))
 	}
 	if err != nil {
 		fmt.Println(err)

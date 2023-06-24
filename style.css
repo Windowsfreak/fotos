@@ -6,85 +6,69 @@ html, body {
 body {
     font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
-.banner {
-    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url("./banner.webp");
-    height: 50%;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: cover;
-    position: relative;
-}
-.banner h1 {
-    text-align: center;
-    padding-top: 15%;
-    font-size: 2em;
-    color: white;
-    font-weight: bold;
-}
-.banner > span {
-    position: absolute;
-    bottom: 4px;
-    left: 8px;
-    font-size: 2em;
-}
-.banner p {
-    text-align: center;
-    color: white;
-}
 #folders {
     display: flex;
     flex-wrap: wrap;
-    padding: 35px 0px;
-    justify-content: center;
 }
 #folders:empty {
     padding: unset;
 }
-h2 a {
-    text-decoration: none;
-    display: inline-block;
+#folders a {
+    font-size: 0.7em;
+    display: block;
+    width: 100%;
+    max-width: 300px;
+    padding: 10px 10px;
+    background-color: #ccf;
 }
-h4 {
-    text-align: center;
-    margin-top: 15px;
+h2 {
     font-size: 2em;
 }
-#folders a {
-    box-sizing: content-box;
-    margin: 10px;
-    height: 250px;
-    width: 350px;
-    overflow: hidden;
-    color: white;
-    position: relative;
-    background-color: white;
+h2 a {
+    display: inline-block;
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 10px;
+    padding: 5px 10px;
+    text-decoration: none;
+    color: black;
+    background: linear-gradient(to right, #ccc, #fff);
+}
+#breadcrumbs a:last-child {
+    background-color: #fff;
+    font-weight: bold;
 }
 h2 a div {
+    border-radius: 10px;
     text-shadow: 0 1px 4px #000, 0 1px 8px #000;
     color: #fff;
 }
+h3, p {
+    margin: 10px 10px;
+}
+h3 {
+    font-size: 1.2em;
+    justify-content: space-between;
+}
+h3:empty, p:empty {
+    margin: unset;
+}
+h3:not(:empty):after {
+    content: '';
+    display: block;
+    background: linear-gradient(to right, white, black);
+    height: 1px;
+}
 #folders a > div:last-child {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(0, 0, 0, 0);
-}
-#folders a:hover > div:last-child {
-    background-color: rgba(0, 0, 0, .5);
 }
 #folders a > div:last-child > div {
     position: absolute;
     bottom: 5px;
     left: 20px;
-    opacity: 0.0;
-    transition: transform 0.3s ease, opacity 0.3s ease;
-}
-#folders a:hover > div:last-child > div {
-    transform: translateY(-20px);
-    opacity: 1.0;
 }
 #folders span {
-    font-size: 0.8em;
+    font-size: 0.5em;
     display: block;
-    opacity: 0.5;
 }
 .no {
     background: #f88 !important;
@@ -94,14 +78,12 @@ h2 a div {
 }
 .flex-images { overflow: hidden; }
 .item { float: left; box-sizing: content-box; overflow: hidden; position: relative;  }
+.item img { display: block; width: 100%; max-height: 100%; }
 h2 a > *, .item > * {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; object-fit: cover; transition: transform 0.3s ease, background-color 0.4s ease;
-}
-h2 a:hover img {
-    transform: scale(1.1);
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; object-fit: cover;
 }
 .item:after {
-    content: attr(data-year);
+    content: attr(data-name);
     display: block;
     position: absolute;
     bottom: 0;
