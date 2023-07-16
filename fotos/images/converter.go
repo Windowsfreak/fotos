@@ -1,33 +1,21 @@
-package fotos
+package images
 
 import (
 	"bytes"
 	"fmt"
+	"github.com/chai2010/webp"
+	"github.com/disintegration/gift"
+	"github.com/jdeng/goheif"
+	"github.com/karmdip-mi/go-fitz"
+	"github.com/lmittmann/ppm"
 	"image"
 	"image/gif"
 	"image/jpeg"
 	"image/png"
-	"io/ioutil"
-	"math"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strconv"
-	"strings"
-	"time"
-
-	"golang.org/x/text/collate"
-	"golang.org/x/text/language"
-
-	"github.com/chai2010/webp"
-	"github.com/disintegration/gift"
-	"github.com/jdeng/goheif"
-	"github.com/lmittmann/ppm"
-
-	"github.com/nfnt/resize"
 )
-
-var cl = collate.New(language.German)
 
 var MediaFiles = []string{
 	".gif", ".jpg", ".jpe", ".jpeg", ".jfif", ".jxl", ".png", ".ppm",
@@ -88,8 +76,22 @@ func Decode(filename string, format string) (m image.Image, err error) {
 		return DecodeVideo(filename)
 	case ".ini", ".pano", ".html", ".log", ".db", ".zip", ".thumbnail", ".exe", ".tif", ".info", ".tlv", ".map", ".psd",
 		".tar", ".rar", ".txt", ".ivp", ".rzs", ".dat", ".tmp", ".mrk", ".acv", ".atn", ".shh", ".bdm", ".tdt", ".tid",
-		".xmp", ".golf":
+		".xmp", ".golf",
+		".bmp", ".lnk", ".doc", ".7z", ".mp3", ".vcf", ".cpi", ".mpl", ".vpl", ".ai", ".dxf", ".emf", ".eps",
+		".svg", ".stl":
 		return nil, nil
+	case ".pdf":
+		var doc *fitz.Document
+		doc, err = fitz.New(filename)
+		if err != nil {
+			return nil, fmt.Errorf("open document \"%v\" failed: %w", filename, err)
+		}
+		defer doc.Close()
+		m, err = doc.Image(0)
+		if err != nil {
+			return nil, fmt.Errorf("rastering first page of document \"%v\" failed: %w", filename, err)
+		}
+		return
 	default:
 		if f, err = os.Open(filename); err != nil {
 			return nil, fmt.Errorf("open image \"%v\" failed: %w", filename, err)
@@ -175,14 +177,21 @@ func EncodeWebP(m image.Image, filename string, quality float32) error {
 	if err := webp.Encode(&buf, m, &webp.Options{Lossless: false, Quality: quality}); err != nil {
 		return fmt.Errorf("calling \"webp.Encode\" with \"%v\" failed: %w", filename, err)
 	}
-	if err := ioutil.WriteFile(filename, buf.Bytes(), os.ModePerm); err != nil {
+	if err := os.WriteFile(filename, buf.Bytes(), os.ModePerm); err != nil {
 		return fmt.Errorf("writing file from \"webp.Encode\" with \"%v\" failed: %w", filename, err)
 	}
 	return nil
 }
 
-func Thumb(m image.Image, w uint, h uint) image.Image {
-	return resize.Thumbnail(w, h, m, resize.Lanczos3)
+func EncodePNG(m image.Image, filename string) error {
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, m); err != nil {
+		return fmt.Errorf("calling \"png.Encode\" with \"%v\" failed: %w", filename, err)
+	}
+	if err := os.WriteFile(filename, buf.Bytes(), os.ModePerm); err != nil {
+		return fmt.Errorf("writing file from \"png.Encode\" with \"%v\" failed: %w", filename, err)
+	}
+	return nil
 }
 
 func Rotate(in image.Image, o int) image.Image {
@@ -209,60 +218,4 @@ func Rotate(in image.Image, o int) image.Image {
 	out := image.NewRGBA(r.Bounds(dim))
 	r.Draw(out, in, nil)
 	return out
-}
-
-func CheckFileAge(in os.FileInfo, outFile string) (bool, time.Time, error) {
-	out, err := os.Stat(outFile + ".s.jxl")
-	if err != nil {
-		return false, in.ModTime(), fmt.Errorf("stat \"%v.s.jxl\" failed: %w", outFile, err)
-	}
-	return math.Abs(in.ModTime().Sub(out.ModTime()).Seconds()) < float64(5*time.Second), in.ModTime(), nil
-}
-
-func Run(inFile string, outFile string, fileInfo os.FileInfo) (Img, error) {
-	img, err := Info(inFile, fileInfo)
-	if img.N == "" {
-		return img, fmt.Errorf("empty image information: %w", err)
-	}
-	if plausibility && img.Orientation > 4 && img.ExifH > img.ExifW {
-		img.Orientation = 1
-	}
-	stats.LastImageName = inFile
-	stats.LastImageSize = fileInfo.Size()
-	format := strings.ToLower(filepath.Ext(fileInfo.Name()))
-	m, err := Decode(inFile, format)
-	if err != nil {
-		return img, fmt.Errorf("decode image \"%v\" failed: %w", inFile, err)
-	}
-	if m == nil {
-		// ignored file format
-		return Img{}, nil
-	}
-	bounds := m.Bounds()
-	img.W = bounds.Dx()
-	img.H = bounds.Dy()
-	large := Thumb(m, 2048, 2048)
-	if plausibility && ((img.Orientation > 4 && img.ExifH > img.ExifW) || format == ".cr2") {
-		img.Orientation = 1
-	}
-	if img.Orientation > 4 {
-		img.W, img.H = img.H, img.W
-	}
-	if img.Orientation > 1 {
-		large = Rotate(large, img.Orientation)
-	}
-	m = nil
-	if err := EncodeJxl(large, outFile+".h.jxl", 60); err != nil {
-		return img, fmt.Errorf("encode image \"%v.h.jxl\" failed: %w", outFile, err)
-	}
-	_ = os.Chtimes(outFile+".h.jxl", img.ModTime, img.ModTime)
-	small := Thumb(large, 400, 200)
-	large = nil
-	if err := EncodeJxl(small, outFile+".s.jxl", 20); err != nil {
-		return img, fmt.Errorf("encode image \"%v.s.jxl\" failed: %w", outFile, err)
-	}
-	_ = os.Chtimes(outFile+".s.jxl", img.ModTime, img.ModTime)
-	pico := Thumb(small, 4, 4)
-	img.C = ImageCorners(pico)
-	return img, nil
 }

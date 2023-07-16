@@ -1,11 +1,10 @@
 Threads: 1
-InFolder: "images/Original/"
-OutFolder: "images/Website/"
-Path:
-MaxAge: 0
-Exclude:
-AlwaysProcessRotatedImages: false
+InPrefix: "images/Original/"
+OutPrefix: "images/Website/"
+InFolder: Original
+OutFolder: a/bc/defgh/ijklmnop
+Nonce: "0"
 Plausibility: true
-ServerAddr: ":40715"
-PreSharedKey: "super-secret-and-unguessable"
-RootFolderCaption: "Photos"
+ServerAddr: :40715
+SecretKey: super-secret-and-unguessable
+LastCompletion: 0

@@ -6,21 +6,6 @@ html, body {
 body {
     font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
-#folders {
-    display: flex;
-    flex-wrap: wrap;
-}
-#folders:empty {
-    padding: unset;
-}
-#folders a {
-    font-size: 0.7em;
-    display: block;
-    width: 100%;
-    max-width: 300px;
-    padding: 10px 10px;
-    background-color: #ccf;
-}
 h2 {
     font-size: 2em;
 }
@@ -32,10 +17,6 @@ h2 a {
     text-decoration: none;
     color: black;
     background: linear-gradient(to right, #ccc, #fff);
-}
-#breadcrumbs a:last-child {
-    background-color: #fff;
-    font-weight: bold;
 }
 h2 a div {
     border-radius: 10px;
@@ -58,31 +39,61 @@ h3:not(:empty):after {
     background: linear-gradient(to right, white, black);
     height: 1px;
 }
-#folders a > div:last-child {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-}
-#folders a > div:last-child > div {
-    position: absolute;
-    bottom: 5px;
-    left: 20px;
-}
-#folders span {
-    font-size: 0.5em;
-    display: block;
-}
 .no {
     background: #f88 !important;
 }
 .no * {
     background: none !important;
 }
-.flex-images { overflow: hidden; }
-.item { float: left; box-sizing: content-box; overflow: hidden; position: relative;  }
-.item img { display: block; width: 100%; max-height: 100%; }
-h2 a > *, .item > * {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; object-fit: cover;
+#breadcrumbs a:last-child {
+    background-color: #fff;
+    font-weight: bold;
 }
-.item:after {
+#folders, #images {
+    display: flex;
+    flex-wrap: wrap;
+}
+#folders:empty, #images:empty {
+    padding: unset;
+}
+#folders a {
+    font-size: 0.7em;
+    width: 100%;
+    max-width: 300px;
+    padding: 10px 10px;
+    background-color: #ccf;
+    position: relative;
+    overflow: hidden;
+}
+#folders a > img {
+    position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;
+}
+#folders a > div:last-child {
+    position: relative; top: 0; left: 0; width: 100%; height: 100%;
+}
+#folders span {
+    font-size: 0.5em;
+    display: block;
+}
+#images a {
+    box-sizing: content-box;
+    overflow: hidden;
+    position: relative;
+    flex-basis: calc(var(--ratio) * 15%);
+    aspect-ratio: var(--ratio);
+    flex-grow: calc(var(--ratio) * 100);
+}
+#images:after {
+    content: '';
+    flex-basis: 0;
+    flex-grow: 10000;
+}
+#images a img {
+    display: block;
+    width: 100%;
+    max-height: 100%;
+}
+#images a:after {
     content: attr(data-name);
     display: block;
     position: absolute;
@@ -93,4 +104,123 @@ h2 a > *, .item > * {
     color: #fff;
     background: #000;
     background: rgba(0,0,0,.3);
+}
+.pswp__custom-caption {
+    background: rgba(0, 0, 0, 0.75);
+    font-size: 1em;
+    color: #fff;
+    width: calc(100% - 32px);
+    max-width: max-content;
+    padding: 2px 8px;
+    border-radius: 4px;
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+}
+
+.cylinder {
+    perspective: 90px;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+.ring {
+    transform-style: preserve-3d;
+    animation: infinite rotate 20s linear;
+    width: 100%;
+    height: 100%;
+    margin: auto;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    transform-origin: 50%;
+}
+.poly {
+    width: 240px;
+    height: 280%;
+    background-repeat: no-repeat;
+    background-color: #444;
+    background-size: 3840px 1920px;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    margin: auto;
+}
+.ring .poly:nth-child(1) {
+    background-position: 0 center;
+    transform: rotateY(0deg) translateZ(600px);
+}
+.ring .poly:nth-child(2) {
+    background-position: -240px center;
+    transform: rotateY(22.5deg) translateZ(600px);
+}
+.ring .poly:nth-child(3) {
+    background-position: -480px center;
+    transform: rotateY(45deg) translateZ(600px);
+}
+.ring .poly:nth-child(4) {
+    background-position: -720px center;
+    transform: rotateY(67.5deg) translateZ(600px);
+}
+.ring .poly:nth-child(5) {
+    background-position: -960px center;
+    transform: rotateY(90deg) translateZ(600px);
+}
+.ring .poly:nth-child(6) {
+    background-position: -1200px center;
+    transform: rotateY(112.5deg) translateZ(600px);
+}
+.ring .poly:nth-child(7) {
+    background-position: -1440px center;
+    transform: rotateY(135deg) translateZ(600px);
+}
+.ring .poly:nth-child(8) {
+    background-position: -1680px center;
+    transform: rotateY(157.5deg) translateZ(600px);
+}
+.ring .poly:nth-child(9) {
+    background-position: -1920px center;
+    transform: rotateY(180deg) translateZ(600px);
+}
+.ring .poly:nth-child(10) {
+    background-position: -2160px center;
+    transform: rotateY(202.5deg) translateZ(600px);
+}
+.ring .poly:nth-child(11) {
+    background-position: -2400px center;
+    transform: rotateY(225deg) translateZ(600px);
+}
+.ring .poly:nth-child(12) {
+    background-position: -2640px center;
+    transform: rotateY(247.5deg) translateZ(600px);
+}
+.ring .poly:nth-child(13) {
+    background-position: -2880px center;
+    transform: rotateY(270deg) translateZ(600px);
+}
+.ring .poly:nth-child(14) {
+    background-position: -3120px center;
+    transform: rotateY(292.5deg) translateZ(600px);
+}
+.ring .poly:nth-child(15) {
+    background-position: -3360px center;
+    transform: rotateY(315deg) translateZ(600px);
+}
+.ring .poly:nth-child(16) {
+    background-position: -3600px center;
+    transform: rotateY(337.5deg) translateZ(600px);
+}
+
+@keyframes rotate {
+    0% {
+        transform: scale(3) translateZ(0) rotateY(0deg);
+    }
+    100% {
+        transform: scale(3) translateZ(0) rotateY(360deg);
+    }
 }

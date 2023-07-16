@@ -3,5 +3,8 @@ package main
 import "fotos/fotos"
 
 func main() {
-	fotos.Main()
+	err := fotos.DirMainTest()
+	if err != nil {
+		println(err.Error)
+	}
 }

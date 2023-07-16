@@ -3,10 +3,9 @@
 !*.*
 .DS_Store
 .idea
-images
-node_modules
-vendor/
+/images/
+/node_modules/
+/vendor/
 *.iml
 *.json
 config.yml
-discord_users.db

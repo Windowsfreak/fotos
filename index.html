@@ -6,8 +6,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="./node_modules/photoswipe/dist/photoswipe.css">
     <link rel="stylesheet" href="./node_modules/minireset.css/minireset.min.css">
-    <link rel="stylesheet" href="./style.css">
-    <!--<script src="./node_modules/jxl.js/jxl.min.js"></script>-->
+    <link rel="stylesheet" href="style.css">
+    <script type="module">
+        window.root = './images/Neu/'
+        window.fixPath = path => encodeURI(path.replace('#', '%23'))
+        window.goto = json => {
+            const target = event ? event.target : {}, xhr = new XMLHttpRequest()
+            xhr.open('GET', fixPath(root + json) + '.json')
+            xhr.onload = function () {
+                const arr = [json, this, xhr]
+                if (window.decode) { window.decode(arr) } else window.firstData = arr
+            }
+            xhr.onerror = e => {
+                console.error(e)
+                if (target && target.closest) target.closest('a').className = 'no'
+            }
+            xhr.send()
+        }
+        const url = decodeURIComponent(location.hash.substring(1).split('&')[0]).replaceAll('.', '/')
+        window.singleImage = false
+        if (url.includes('~')) {
+            const s = url.split('~')
+            window.singleImage = true
+            window.firstData = [url, {status:200}, {response:JSON.stringify({p:s[0]+'/',c:'',k:1,imgs:[{p:s[1],n:'',c:'',w:s[2],h:s[3]}]})}]
+        } else {
+            goto(url)
+        }
+    </script>
 </head>
 <body>
 <h2 id="breadcrumbs"></h2>
@@ -15,74 +40,96 @@
 <h3 id="folders_head"></h3>
 <h2 id="folders"></h2>
 <h3 id="images_head"></h3>
-<div id="images" class="flex-images"></div>
+<div id="images"></div>
 <h3 id="files_head"></h3>
 <p id="files"></p>
-<script src="./node_modules/javascript-flex-images/flex-images.min.js"></script>
 <script type="module">
     import PhotoSwipeLightbox from './node_modules/photoswipe/dist/photoswipe-lightbox.esm.min.js'
     // Simple fullscreen API
     const fullscreenAPI = getFullscreenAPI()
-    const pswpContainer = getContainer()
+    const pswpContainer = getPswpContainer()
 
-    const root = './images/Website/', original = './images/Original/'
+    const original = 'images/'
+    const knownPaths = {}
     let currentPath
-    const fixPath = path => encodeURI(path.replace('#', '%23'))
-    const goto = path => {
-        const target = event ? event.target : {}, xhr = new XMLHttpRequest()
-        xhr.open('GET', fixPath(root + path) + '/index.json')
-        xhr.onload = function () {
-            if (this.status >= 200 && this.status < 300) try {
-                load(path, JSON.parse(xhr.response))
-                const x = location.hash.substring(1).split('&')
-                x[0] = encodeURIComponent(path)
-                location.hash = x.join('&')
-                callback()
-            } catch (e) {
-                xhr.onerror(e)
-            } else xhr.onerror(xhr.response)
-        }
-        xhr.onerror = e => {
-            console.error(e)
-            if (target && target.closest) target.closest('a').className = 'no'
-        }
-        xhr.send()
-    }
-    const setBreadcrumbs = (file, c) => {
+    const setBreadcrumbs = (file, name, c) => {
         let str = '', path = ''
-        const append = (folder, path) => {
-            if (path === file) str += drawBox(`onclick="goto('${path}'); return false" href="#"`, c, folder)
-            else str += `<a onclick="goto('${path}'); return false" href="#">${folder}</a>`
+        knownPaths[name] = [file, c]
+        const append = (folder, knownPath) => {
+            if (knownPath) {
+                const path = knownPath[0]
+                const c = knownPath[1]
+                str += drawBox(`onclick="goto('${path}'); return false" href="#"`, c, folder)
+            }
+            else str += `<a>${folder}</a>`
         }
-        append('&#x1f3e0;', '')
-        if (file) file.split('/').forEach(folder => {
+        if (name) name.split('/').forEach(folder => {
             path += folder
-            append(folder, path)
+            append(folder, knownPaths[path])
             path += '/'
         })
         document.getElementById('breadcrumbs').innerHTML = str
     }
-    function load(path, json) {
-        currentPath = path
-        setBreadcrumbs(path, json.c)
-        document.getElementById('date').innerHTML = caption(json, ['dates'])
-        document.getElementById('folders_head').innerHTML = caption(json, ['folders'])
-        document.getElementById('images_head').innerHTML = caption(json, ['images'])
-        document.getElementById('files_head').innerHTML = json.misc && caption(json, ['files']) || ''
-        document.getElementById('files').innerHTML = json.misc && json.misc.map(s => {
-            const p = document.createElement('p')
-            p.textContent = s
-            return p.innerHTML
-        }).join('<br />') || ''
-        setFolders(path, json.subs || [])
-        setImages(path, json.imgs || [])
-        new flexImages({selector: '#images', rowHeight: 200})
+    function load(jsonPath, json) {
+        jsonPath = json.p
+        const path = jsonPath.substring(0, jsonPath.lastIndexOf('/'))
+        currentPath = jsonPath
+        if (json.n) {
+            document.getElementById('date').innerHTML = caption(json, ['dates'])
+            document.getElementById('folders_head').innerHTML = caption(json, ['folders'])
+            document.getElementById('images_head').innerHTML = caption(json, ['images'])
+            document.getElementById('files_head').innerHTML = json.misc && caption(json, ['files']) || ''
+            document.getElementById('files').replaceChildren(json.misc && json.misc.map(s => {
+                const p = document.createElement('p')
+                p.textContent = s
+                return p.innerHTML
+            }).join('\n') || '')
+        }
+        setImages(path, json.imgs || [], json)
+        setFolders(json.subs || [])
+        setBreadcrumbs(jsonPath, json.n, json.c)
+    }
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+    const canvas = document.createElement('canvas')
+    canvas.width = 4
+    canvas.height = 4
+    const ctx = canvas.getContext('2d')
+    const d = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    const background = input => {
+        if (input === '') return 'inherit'
+        let j = 0
+        for (let i = 0; i < 64; i+=4) {
+            const c = alphabet.indexOf(input[j]) * 64 + alphabet.indexOf(input[j + 1])
+            d.data[i] = (c >> 8) * 255/15
+            d.data[i+1] = (c >> 4 & 0xF) * 255/15
+            d.data[i+2] = (c & 0xF) * 255/15
+            d.data[i+3] = 255
+            j+=2
+        }
+        ctx.putImageData(d, 0, 0)
+        const dataURL = canvas.toDataURL()
+        return `0 0 / 100% 100% url(${dataURL})`
     }
     const drawBox = (attrs, data, text, img) => {
-        const g = a => [0,6,12,18].map(o => (a || '0'.repeat(24)).slice(o, o + 6)),
-            c = g(data), b = n => `background:linear-gradient(to right,#${c[n]},#${c[n + 1]})`, m = 'mask:linear-gradient(to bottom,transparent,#fff)',
-            i = img ? `<img src="${img}" style="position:absolute;top:0;left:0;width:100%;height:100%"/>` : ''
-        return `<a ${attrs} style="${b(0)};position:relative"><div style="position:absolute;top:0;left:0;width:100%;height:100%;${b(2)};-webkit-${m};${m}"></div>${i}<div style="position:relative">${text}</div></a>`
+        const b = `background:${background(data)}`,
+            i = img ? `<img src="${img}" />` : ''
+        return `<a ${attrs} style="${b}">${i}<div >${text}</div></a>`
+    }
+    const makeBox = img => {
+        const a = document.createElement('a')
+        a.className = 'item'
+        a.href = img.src
+        const x = a.dataset
+        x.id = img.n
+        x.w = img.w
+        x.h = img.h
+        x.name = img.n
+        a.style.setProperty('--ratio', `${img.w / img.h}`)
+        a.style.background = background(img.c)
+        const i = document.createElement('img')
+        i.src = img.t
+        a.append(i)
+        return a
     }
     const utc = {timeZone: 'UTC'}
     const day = {...utc, day: '2-digit'}
@@ -93,8 +140,8 @@
     const fullString = {...fullDate, ...time}
     const formatDate = (date, format) => date.toLocaleString('de-DE', format)
     const dateRange = (from, to) => {
-        from = new Date(from)
-        to = new Date(to)
+        from = new Date(from * 1000)
+        to = new Date(to * 1000)
         return from.getUTCFullYear() === to.getUTCFullYear() ?
             (from.getUTCMonth() === to.getUTCMonth() ?
                 (from.getUTCDate() === to.getUTCDate() ?
@@ -103,45 +150,78 @@
                 `${formatDate(from, withMonth)} - ${formatDate(to, fullDate)}`) :
             `${formatDate(from, fullDate)} - ${formatDate(to, fullDate)}`
     }
-    const dateStr = date => formatDate(new Date(date), fullString)
+    const dateStr = date => formatDate(new Date(date * 1000), fullString)
     const plural = (x, sg, pl) => `${x || 0} ${sg}` + (x !== 1 ? pl : '')
     function caption(folder, elements = ['images', 'files', 'folders', 'dates']) {
         const i = []
-        elements.includes('images') && folder.images && i.push(plural(folder.images, 'Foto', 's'))
-        const files = !folder.subs && folder.files || (folder.misc && folder.misc.length) || 0
+        const subImgs = (folder.k || 0) - (folder.imgs || []).length
+        elements.includes('images') && folder.imgs && i.push(plural(folder.imgs.length, 'Foto', 's'))
+        const files = !folder.subs && folder.l || (folder.misc && folder.misc.length) || 0
         elements.includes('files') && files && i.push(plural(files, 'Datei', 'en'))
         return (i.length ? '<span>' + i.join(', ') + '</span>' : '') +
-            (elements.includes('folders') && folder.folders ? `<span>${folder.totalImages ? plural(folder.totalImages, 'Foto', 's') + ' in ' + plural(folder.folders, 'Ordner', 'n') : `enthält ${folder.folders} Ordner`}</span>` : '') +
-            (elements.includes('dates') && folder.newest !== '0001-01-01T00:00:00Z' ? `<span>${dateRange(folder.oldest, folder.newest)}</span>` : '')
+            (elements.includes('folders') && folder.j ? `<span>${subImgs ? plural(subImgs, 'Foto', 's') + ' in ' + plural(folder.j, 'Ordner', 'n') : `enthält ${folder.j} Ordner`}</span>` :
+                (elements.includes('folders') && subImgs ? `<span>${plural(subImgs, 'Foto', 's')}</span>` : '')
+            ) + (elements.includes('dates') && folder.r !== 0 ? `<span>${dateRange(folder.o, folder.r)}</span>` : '')
     }
-    function setFolders(file, folders) {
+    function setFolders(folders) {
         let str = ''
         folders.forEach(folder =>
-            (str += drawBox(`onclick="goto('${file ? file + '/' : ''}${folder.n}'); return false" href="#"`, folder.c, folder.n + caption(folder), fixPath(root+(file ? file + '/' : '')+folder.n+'/'+folder.i+'.h.jxl')))
+            (str += drawBox(`onclick="goto('${folder.p}'); return false" href="#"`, folder.c, folder.n + caption(folder), fixPath(root+folder.i+'.h.jxl')))
         )
         document.getElementById('folders').innerHTML = str
     }
-    function setImages(file, images) {
-        let str = ''
-        const imgs = []
-        images.forEach(image => {
-            str += drawBox(`class="item" href="${fixPath(root+file+'/'+image.n)}.h.jxl"\
-            data-id="${image.n}"\
-            data-w="${image.w}"\
-            data-h="${image.h}"\
-            data-name="${image.n}"\
-            `, image.c, '', `${fixPath(root+file+'/'+image.n)}.s.jxl`)
-            imgs.push({
-                src: `${fixPath(root+file+'/'+image.n)}.h.jxl`,
-                download: `${fixPath(original+file+'/'+image.n)}`,
-                w: image.w,
-                h: image.h,
-                title: `${image.n} - ${dateStr(image.d)} - ${image.w} x ${image.h}`,
-                id: image.n
+    function impl3(path, imgs, json) {
+        const images = []
+        imgs.forEach(img => {
+            images.push({
+                srcset: `${fixPath(root+path+'/'+img.p)}.o.jxl ${img.w}w, ${fixPath(root+path+'/'+img.p)}.h.jxl ${Math.min(2048, img.w)}w, ${fixPath(root+path+'/'+img.p)}.s.jxl ${Math.min(400, img.w)}w`,
+                src: fixPath(root+path+'/'+img.p) + '.h.jxl',
+                download: fixPath(original+json.n+'/'+img.n+"?proof="+json.q+img.p),
+                c: img.c,
+                t: fixPath(root+path+'/'+img.p) + '.s.jxl',
+                n: img.n,
+                d: img.d,
+                w: img.w,
+                h: img.h,
+                id: img.n,
+                p: [path, img.p]
             })
         })
-        window.items = imgs
-        document.getElementById('images').innerHTML = str
+        window.items = images
+        window.lazyItems = [...images]
+        const parent = document.getElementById('images')
+        parent.replaceChildren()
+        addMoreImages(parent, 10)
+    }
+    function addMoreImages(parent, amount) {
+        if (!window.lazyItems || !window.lazyItems.length) return
+        const imgs = window.lazyItems.splice(0, amount)
+        if (!imgs.length) return
+        const images = []
+        imgs.forEach(img => {
+            images.push(makeBox(img))
+        })
+        parent.append(...images)
+        lazyLoad()
+    }
+    const lazyLoad = () => {
+        const imagesElement = document.getElementById('images')
+        const viewportHeight = window.innerHeight
+        const { bottom: elementBottom } = imagesElement.getBoundingClientRect()
+
+        const threshold = viewportHeight * 1.5
+
+        if (elementBottom < threshold) {
+            addMoreImages(imagesElement, 10)
+        }
+    }
+
+    window.addEventListener('resize', lazyLoad)
+    window.addEventListener('scroll', lazyLoad)
+
+    lazyLoad()
+    function setImages(path, imgs, json) {
+        impl3(path, imgs, json)
 
         const galleryEl = document.getElementById('images')
         window.lightbox = new PhotoSwipeLightbox({
@@ -158,6 +238,7 @@
             showAnimationDuration: 0,
             hideAnimationDuration: 0,
 
+            imageClickAction: 'toggle-controls'
             // Add if you're using responsive images since viewport size is unpredictable at initialization:
             // preloadFirstSlide: false
         })
@@ -167,9 +248,87 @@
             return thumbEl
         })
         window.lightbox.addFilter('placeholderSrc', (placeholderSrc, slide) => {
-            const el = galleryEl.querySelector('[data-id="' + slide.data.id + '"] img')
+            console.log(slide)
+            return slide.data.t
+            /*const el = galleryEl.querySelector('[data-id="' + slide.data.id + '"] img')
             if (el) return el.src
-            return placeholderSrc
+            return placeholderSrc*/
+        })
+        window.lightbox.addFilter('itemData', (data, index) => {
+            if (data.n.toLowerCase().includes('pano') && data.w === data.h * 2) {
+                return {...data, src: undefined,
+                    html: `
+<div class="cylinder">
+  <div class="ring">
+    ${new Array(16).fill(`<div class="poly" style="background-image: url(${data.src})"></div>`).join()}
+  </div>
+</div>`
+                }
+            }
+            return data
+        })
+        window.lightbox.on('uiRegister', function() {
+            if (window.singleImage) return
+            lightbox.pswp.ui.registerElement({
+                name: 'download-button',
+                order: 8,
+                isButton: true,
+                tagName: 'a',
+
+                html: {
+                    isCustomSVG: true,
+                    inner: '<path d="M20.5 14.3 17.1 18V10h-2.2v7.9l-3.4-3.6L10 16l6 6.1 6-6.1ZM23 23H9v2h14Z" id="pswp__icn-download"/>',
+                    outlineID: 'pswp__icn-download'
+                },
+
+                onInit: (el, pswp) => {
+                    el.setAttribute('download', '')
+                    el.setAttribute('target', '_blank')
+                    el.setAttribute('rel', 'noopener')
+
+                    pswp.on('change', () => {
+                        el.href = pswp.currSlide.data.download
+                    })
+                }
+            });
+            lightbox.pswp.ui.registerElement({
+                name: 'share-button',
+                order: 11,
+                isButton: true,
+                tagName: 'a',
+
+                html: {
+                    isCustomSVG: true,
+                    inner: `<g stroke="#fff" stroke-width="3"><line x1="7" y1="16" x2="25" y2="7" /><line x1="7" y1="16" x2="19" y2="25" /></g>
+<g fill="#fff"><circle cx="7" cy="16" r="6" /><circle cx="25" cy="7" r="6" /><circle cx="19" cy="25" r="6" /></g>
+<g fill="#606060"><circle cx="7" cy="16" r="4" /><circle cx="25" cy="7" r="4" /><circle cx="19" cy="25" r="4" /></g>`,
+                    outlineID: 'pswp__icn-share'
+                },
+
+                onInit: (el, pswp) => {
+                    el.setAttribute('download', '')
+                    el.setAttribute('target', '_blank')
+                    el.setAttribute('rel', 'noopener')
+
+                    pswp.on('change', () => {
+                        el.onclick = () => { document.getElementById('sharer').showModal() }
+                    })
+                }
+            })
+            lightbox.pswp.ui.registerElement({
+                name: 'custom-caption',
+                order: 9,
+                isButton: false,
+                appendTo: 'root',
+                html: 'Caption text',
+                onInit: (el, pswp) => {
+                    pswp.on('change', () => {
+                        let img = pswp.currSlide.data
+                        let captionHTML = `${img.n} - ${dateStr(img.d)} - ${img.w} x ${img.h}`
+                        el.replaceChildren(captionHTML || '')
+                    })
+                }
+            })
         })
         window.lightbox.on('close', () => {
             pswpContainer.style.display = 'none'
@@ -186,7 +345,7 @@
     }
     document.getElementById('images').onclick = openImage
     const update = () => {
-        const path = decodeURIComponent(location.hash.substring(1).split('&')[0])
+        const path = decodeURIComponent(location.hash.substring(1).split('&')[0]).replaceAll('.', '/')
         if (path !== currentPath) {
             goto(path)
         }
@@ -199,8 +358,21 @@
             target: [...document.getElementsByClassName('item')].filter(item => item.getAttribute('data-id') === pidVal)[0]
         })
     }
-    update()
-    window.goto = goto
+    window.decode = ([json, resp, xhr]) => {
+        if (resp.status >= 200 && resp.status < 300) try {
+            load(json, JSON.parse(xhr.response))
+            const x = location.hash.substring(1).split('&')
+            x[0] = encodeURIComponent(json.replaceAll('/', '.'))
+            location.hash = x.join('&')
+            callback()
+        } catch (e) {
+            xhr.onerror(e)
+        } else xhr.onerror(xhr.response)
+    }
+    if (window.firstData) {
+        decode(window.firstData)
+        delete window.firstData
+    }
     window.onhashchange = update
 
     function getFullscreenPromise() {
@@ -222,51 +394,127 @@
         })
     }
 
-    // Simple fullscreen API helper,
-    // supports unprefixed and webkit-prefixed versions
     function getFullscreenAPI() {
-        let api, enterFS, exitFS, elementFS, changeEvent, errorEvent
         if (document.documentElement.requestFullscreen) {
-            enterFS = 'requestFullscreen'
-            exitFS = 'exitFullscreen'
-            elementFS = 'fullscreenElement'
-            changeEvent = 'fullscreenchange'
-            errorEvent = 'fullscreenerror'
-        } else if (document.documentElement.webkitRequestFullscreen) {
-            enterFS = 'webkitRequestFullscreen'
-            exitFS = 'webkitExitFullscreen'
-            elementFS = 'webkitFullscreenElement'
-            changeEvent = 'webkitfullscreenchange'
-            errorEvent = 'webkitfullscreenerror'
-        }
-        if (enterFS) {
-            api = {
+            return {
                 request(el) {
-                    if (enterFS === 'webkitRequestFullscreen') el[enterFS](Element.ALLOW_KEYBOARD_INPUT)
-                    else el[enterFS]()
+                    el.requestFullscreen()
                 },
                 exit() {
-                    return document[exitFS]()
+                    return document.exitFullscreen()
                 },
                 isFullscreen() {
-                    return document[elementFS]
+                    return document.fullscreenElement
                 },
-                change: changeEvent,
-                error: errorEvent
+                change: 'fullscreenchange',
+                error: 'fullscreenerror'
             }
         }
-        return api
     }
 
-    function getContainer() {
-        const pswpContainer = document.createElement('div')
-        pswpContainer.style.background = '#000'
-        pswpContainer.style.width = '100%'
-        pswpContainer.style.height = '100%'
-        pswpContainer.style.display = 'none'
-        document.body.appendChild(pswpContainer)
-        return pswpContainer
+    function getPswpContainer() {
+        const c = document.createElement('div')
+        c.style.background = '#000'
+        c.style.width = '100%'
+        c.style.height = '100%'
+        c.style.display = 'none'
+        document.body.append(c)
+        return c
     }
+</script>
+<dialog id="settings">
+    <form method="dialog">
+        Ansicht
+        <label>
+            <input type="checkbox" name="rotate" onchange="setRotate()">
+            Immer im Vollbild
+        </label>
+        <label>
+            <input type="checkbox" name="hide" onchange="setHide()">
+            Bei Antippen Menü ausblenden
+        </label>
+        <label>
+            <input type="checkbox" name="rotate" onchange="setRotate()">
+            360º-Bilder automatisch drehen
+        </label>
+        Bildqualität
+        <label>
+            <input type="radio" name="quality-option" value="link" onchange="setImgQuality(0)">
+            Automatisch
+        </label>
+        <br>
+        <label>
+            <input type="radio" name="quality-option" value="gallery" onchange="setImgQuality(1)">
+            Normal (Mobil)
+        </label>
+        <br>
+        <label>
+            <input type="radio" name="quality-option" value="image" onchange="setImgQuality(2)">
+            Immer hohe Qualität
+        </label>
+        <br>
+        <label>
+            <input type="checkbox" name="quality-thumbnails" onchange="setThumbQuality()">
+            Vorschau in hoher Qualität
+        </label>
+        <button type="reset" onclick="resetSharer()">Schließen</button>
+    </form>
+</dialog>
+<dialog id="sharer">
+    <form method="dialog">
+        <label>
+            <input type="radio" name="share-option" value="gallery" onchange="copyLink(location.href)">
+            Gesamtes Album
+        </label>
+        <br>
+        <label>
+            <input type="radio" name="share-option" value="image" onchange="copyLink(img())">
+            Dieses Bild
+        </label>
+        <br>
+        <label>
+            <input type="radio" name="share-option" value="link" onchange="copyLink(window.location.origin + window.location.pathname.replace('index.html', '') + pswp.currSlide.data.download)">
+            Originaldatei
+        </label>
+        <br>
+        <input type="text" id="result" readonly>
+        <button id="copy-button" onclick="copyResult()">Kopieren</button>
+        <button type="reset" onclick="resetSharer()">Schließen</button>
+    </form>
+</dialog>
+<script>
+    const resultField = document.getElementById("result")
+    const copyButton = document.getElementById("copy-button")
+    function img() {
+        const s = pswp.currSlide.data
+        return window.location.origin + window.location.pathname + `#${s.p[0]}~${s.p[1]}~${s.w}~${s.h}`.replaceAll('/', '.')
+    }
+    function copyLink(val) {
+        resultField.value = val
+        copyResult()
+    }
+    function copyResult() {
+        resultField.select()
+        resultField.setSelectionRange(0, 99999)
+        if (!navigator.clipboard) {
+            document.execCommand("copy")
+        } else {
+            navigator.clipboard.writeText(resultField.value)
+        }
+        copyButton.innerText = "Kopiert!"
+        window.setTimeout(resetSharer, 4000)
+    }
+    function resetSharer() {
+        document.getElementById('sharer').close()
+        copyButton.innerText = "Kopieren"
+    }
+    const testImage = new Image();
+    testImage.onerror = function() {
+        const par = document.createElement('p');
+        par.innerHTML = 'Laden die Bilder nicht? Dann hole dir jetzt <a href="https://thorium.rocks/">Thorium</a>, den JPEG-XL-fähigen Browser für alle Geräte außer iPhone.';
+        document.body.append(par);
+    };
+    testImage.src = 'data:image/jxl;base64,/woAEAwkxY0AUxVIAJQAARAAAAAAYcNHAQAAVKiMMm7wcq7nyw8dFtM2rjO01baFJYyJZ4CFhEJiBA2GGAOVQAkA';
 </script>
 </body>
 </html>

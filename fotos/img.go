@@ -2,7 +2,7 @@ package fotos
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"strconv"
@@ -13,23 +13,33 @@ import (
 )
 
 type Img struct {
-	N           string    `json:"n"`
-	W           int       `json:"w"`
-	H           int       `json:"h"`
-	D           time.Time `json:"d,omitempty"`
-	C           string    `json:"c,omitempty"`
-	Lat         float64   `json:"lat,omitempty"`
-	Lon         float64   `json:"lon,omitempty"`
-	Orientation int       `json:"-"`
-	ExifW       int       `json:"-"`
-	ExifH       int       `json:"-"`
-	ModTime     time.Time `json:"-"`
+	Path        string  `json:"p"`           // basename of encrypted img file
+	Name        string  `json:"n"`           // original filename
+	Width       int     `json:"w"`           // width
+	Height      int     `json:"h"`           // height
+	Date        int64   `json:"d,omitempty"` // EXIF date
+	Color       string  `json:"c,omitempty"` // string representing a 4x4 low-res mesh gradient
+	Lat         float64 `json:"lat,omitempty"`
+	Lon         float64 `json:"lon,omitempty"`
+	Orientation int     `json:"-"`
+	ExifW       int     `json:"-"`
+	ExifH       int     `json:"-"`
+	ModTime     int64   `json:"-"`
+}
+
+func FindImg(items []Img, name string) (Img, bool) {
+	for i := range items {
+		if items[i].Name == name {
+			return items[i], true
+		}
+	}
+	return Img{}, false
 }
 
 func Info(filename string, info os.FileInfo) (img Img, err error) {
-	img.N = norm.NFC.String(info.Name())
-	img.D = info.ModTime().Add(time.Duration(-info.ModTime().Nanosecond()))
-	img.ModTime = info.ModTime()
+	img.Name = norm.NFC.String(info.Name())
+	img.Date = info.ModTime().Unix()
+	img.ModTime = img.Date
 	cmd := exec.Command("exiftool", "-T", "-datetimeoriginal", "-orientation", "-gps:GPSLatitude", "-gps:GPSLongitude", "-imagewidth", "-imageheight", "-n", filename)
 	out, err := cmd.StdoutPipe()
 	if err != nil {
@@ -42,7 +52,7 @@ func Info(filename string, info os.FileInfo) (img Img, err error) {
 		return
 	}
 	defer out.Close()
-	b, err := ioutil.ReadAll(out)
+	b, err := io.ReadAll(out)
 	defer cmd.Wait()
 	if err != nil {
 		err = fmt.Errorf("reading from pipe of \"exiftool\" with \"%v\" failed: %w", filename, err)
@@ -52,7 +62,7 @@ func Info(filename string, info os.FileInfo) (img Img, err error) {
 	layout := "2006:01:02 15:04:05"
 	date, err := time.ParseInLocation(layout, data[0], time.Local)
 	if err == nil {
-		img.D = date
+		img.Date = date.Unix()
 	}
 	if len(data) < 2 { // Assume error "No matching files"
 		err = fmt.Errorf("no matching files")
