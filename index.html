@@ -34,7 +34,7 @@
         }
     </script>
 </head>
-<body>
+<body style="--width: 15%">
 <h2 id="breadcrumbs"></h2>
 <h4 id="date"></h4>
 <h3 id="folders_head"></h3>
@@ -44,6 +44,8 @@
 <h3 id="files_head"></h3>
 <p id="files"></p>
 <script type="module">
+    window.rotate = true
+
     import PhotoSwipeLightbox from './node_modules/photoswipe/dist/photoswipe-lightbox.esm.min.js'
     // Simple fullscreen API
     const fullscreenAPI = getFullscreenAPI()
@@ -255,7 +257,7 @@
             return placeholderSrc*/
         })
         window.lightbox.addFilter('itemData', (data, index) => {
-            if (data.n.toLowerCase().includes('pano') && data.w === data.h * 2) {
+            if (window.rotate && data.n.toLowerCase().includes('pano') && data.w === data.h * 2) {
                 return {...data, src: undefined,
                     html: `
 <div class="cylinder">
@@ -422,11 +424,30 @@
         return c
     }
 </script>
+<script>
+    function setPreviewWidth() {
+        document.body.style.setProperty('--width', document.getElementById('preview-width').value + '%')
+    }
+    function setFullscreen() {
+
+    }
+    function setHide() {
+
+    }
+    function setRotate() {
+        window.rotate = document.getElementById('rotate').checked
+    }
+</script>
 <dialog id="settings">
     <form method="dialog">
         Ansicht
         <label>
-            <input type="checkbox" name="rotate" onchange="setRotate()">
+            Vorschaugröße:<br />
+            <input type="range" id="preview-width" min="5" max="60" value="15" onchange="setPreviewWidth()">
+            <!-- document.body.style.setProperty('--width', '15%') -->
+        </label>
+        <label>
+            <input type="checkbox" name="rotate" onchange="setFullscreen()">
             Immer im Vollbild
         </label>
         <label>
@@ -434,7 +455,7 @@
             Bei Antippen Menü ausblenden
         </label>
         <label>
-            <input type="checkbox" name="rotate" onchange="setRotate()">
+            <input type="checkbox" id="rotate" onchange="setRotate()">
             360º-Bilder automatisch drehen
         </label>
         Bildqualität

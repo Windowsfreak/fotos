@@ -54,7 +54,7 @@ func WalkFiles(files []fs.DirEntry, imgs []Img, inPrefix string, inFolder string
 			if existingImg, ok := CheckImageAge(file, imgs, name, outPath, p); ok {
 				img, err = existingImg, nil
 			} else {
-				img, err = Convert(inPath+"/"+file.Name(), outPath+"/"+p, file)
+				img, err = ConvertWith(inPath+"/"+file.Name(), outPath+"/"+p, file)
 			}
 			<-imgThreads
 			if err != nil {

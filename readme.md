@@ -12,112 +12,59 @@ Measurements have been taken to speed this process up and achieve the
 second goal: Accessing galleries should only consume small data quotas
 and very fast to load and use.
 
+Thumbnails are saved in JPEG-XL, which requires a browser that supports
+this new file format. At the moment, [Thorium](https://thorium.rocks) is
+the only widely available chromium-based browser to support JPEG-XL,
+unless you got an iPhone, of course.
+
 ## Image viewer
 
 The image viewer reads JSON files from the folder and generates a
-mobile-friendly preview page. Folder navigation will also be
-extracted from the JSON file. Beware that this plain implementation
-neither contains a password protection nor any dynamic authentication.
-If you want a password protection, use the HTTP Basic Authentication
-together with a HTTPS-only web server.
-
-**To prevent lags or slow UI response on mobile devices:**
-
-- Albums should not contain more than 1.500 pictures
-- Full screen images should not be larger than 1024 pixels
-  in any dimension
+mobile-friendly preview page. The folder navigation uses encrypted
+folder names, which are extracted from the JSON file, ensuring
+enhanced security and preventing unauthorized access. With the
+implementation of path and file name encryption through hashing,
+as well as disabled directory listing, the system provides robust
+protection against unauthorized guessing. It is recommended to use
+additional security measures such as using a HTTPS-only web server
+to keep the folder structure hidden.
 
 **Dependencies (Node.js modules only)**
 
 - minireset.css
-- javascript-flex-images
 - photoswipe
 
 ## Preview files generator
 
 The preview files generator walks through a source directory tree,
 mirrors the folder structure to the destination path, and for each
-pho.to file it encounters, a pho.to.h.jxl and a pho.to.s.jxl is
-generated. The generator will place an index.json file into each
-directory that contains the date taken, the dimensions and the name
-of each file. GPS coordinates and averaged edge colors are generated.
+pho.to file it encounters, a pho.to.o.jxl, a pho.to.h.jxl and a
+pho.to.s.jxl is generated. The generator will place an index.json
+file into each directory that contains the date taken, the dimensions
+and the name of each file. GPS coordinates and blurry thumbnails
+are saved into the json file as well.
 
 This script can start where it had left off and will read existing
 index.json files and thumbnails and check their modify dates.
 
-## REST Server
-
-This release is baked into a REST server that is listening to requests
-to create and delete files programmatically based on query parameters.
-
-### /pictures/add
-**Using GET:**
-
-Available query parameters:
-
-<dl>
-  <dt><strong>token (Required!)</strong></dt>
-  <dd>A pre-shared key to authenticate a discord bot against the server</dd>
-  <dt><strong>id (Required!)</strong></dt>
-  <dd>64-bit unsigned integer id field for the discord user id</dd>
-  <dt><strong>username (Required!)</strong></dt>
-  <dd>Username to be displayed in the image viewer</dd>
-  <dt><strong>discriminator (Required!)</strong></dt>
-  <dd>Discriminator to be displayed in the image viewer</dd>
-  <dt><strong>url (Required!)</strong></dt>
-  <dd>Path to a file to be downloaded into the discord user's gallery</dd>
-</dl>
-
-For example: Calling the following URL
-will add a bird into the Björn Eberhardt's gallery.
-
-    /pictures/add?token=TOP-SECRET&id=215568977756291072&username=Bj%C3%B6rn Eberhardt&discriminator=2964&url=https://i.imgur.com/XsTeOCT.jpg
-
-**Using POST:**
-
-Refer to this example object to construct your request object:
-
-```json
-{
-  "userId": "215568977756291072",
-  "userName": "Björn Eberhardt",
-  "discriminator": "2964",
-  "gallery": "215568977756291072",
-  "url": "https://i.imgur.com/XsTeOCT.jpg",
-  "preSharedKey": "TOP-SECRET"
-}
-```
-
-### /pictures/del
-
-This command will delete a picture. If a gallery contains no
-files, the entire gallery will be deleted.
-
-### /pictures/random
-
-This command takes no arguments and returns a JSON with data
-about a randomly picked image. Example:
-
-```json
-{
-  "userId": "215568977756291072/",
-  "userName": "Björn Eberhardt",
-  "discriminator": "2964",
-  "gallery": "215568977756291072/",
-  "filename": "XsTeOCT-abcde.jpg"
-}
-```
-
 ## Getting started
+
+**On Windows,** go-fitz does not compile! Remove its reference in
+converter.go by replacing the respective switch case with
+`return nil, nil`, from `go.mod` if needed, and run `go mod vendor`
 
 **Dependencies:**
 
 - cgo (needs to be enabled)
+- cjxl
 - dcraw
 - exiftool
 - ffmpeg
 - golang 1.14.3
-- all the other letters in the alphabet
+
+**On Windows,** obtain cjxl, dcraw, exiftool and ffmpeg and place
+their executables in the `%PATH%`. Enable cgo by changing your
+environment variables or `SET CGO_ENABLED=1`
 
 **Set up the vendor folder:**
 
@@ -126,12 +73,16 @@ about a randomly picked image. Example:
   go get github.com/nomad-software/vend 
   $GOPATH/bin/vend
   ```
+  **On Windows,** you can use the above go get command, followed by
+  `go mod vendor` to fix your local folder. Then go into your goroot,
+  locate vend and build it. Then jump back to the project and execute
+  vend.exe by providing its full path or putting it into the `%PATH%`
 
 **Run:**
 
 - Run `cp config.example.yml config.yml`
 - Edit your `config.yml` to suit your needs.
-- Compile with `go build fotos/server/main`
-- Run `./main --help`.
+- Compile with `go build fotos/fotos/main`
+- Run `./main`.
 
-> ***<span style="color:red !important">This tool can delete folders and files so carefully check your program arguments</span>***
+> ***<span style="color:red !important">This tool can delete folders and files so carefully check your config.yml file</span>***

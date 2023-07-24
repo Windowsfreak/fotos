@@ -301,6 +301,8 @@ func DirMainTest() error {
 	inPrefix := domain.Config.InPrefix
 	outPrefix := domain.Config.OutPrefix
 	inFolder := domain.Config.InFolder
+	imgThreads = make(chan bool, domain.Config.Threads)
+
 	resultPromise := Walk(inPrefix, inFolder, outPrefix, domain.Config.Nonce)
 	value := <-resultPromise
 

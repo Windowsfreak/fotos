@@ -5,6 +5,7 @@ html, body {
 }
 body {
     font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --width: 15%;
 }
 h2 {
     font-size: 2em;
@@ -79,7 +80,7 @@ h3:not(:empty):after {
     box-sizing: content-box;
     overflow: hidden;
     position: relative;
-    flex-basis: calc(var(--ratio) * 15%);
+    flex-basis: calc(var(--ratio) * var(--width));
     aspect-ratio: var(--ratio);
     flex-grow: calc(var(--ratio) * 100);
 }
