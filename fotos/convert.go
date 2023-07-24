@@ -118,7 +118,7 @@ func PythonConvert(inFile string, outFile string, fileInfo fs.FileInfo) (Img, er
 	if err != nil {
 		return img, fmt.Errorf("marshaling image info for image \"%v\" failed: %w", inFile, err)
 	}
-	cmd := exec.Command("/Users/bjoern/projects/bjoern/fotos/venv/bin/python", "image_processor.py")
+	cmd := exec.Command("python", "image_processor.py")
 	cmd.Stdin = bytes.NewReader(jsonData)
 	var output bytes.Buffer
 	cmd.Stdout = &output
