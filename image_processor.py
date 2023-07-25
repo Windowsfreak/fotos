@@ -1,3 +1,4 @@
+import io
 import os
 import sys
 import json
@@ -110,5 +111,7 @@ def process_image(image_info):
 
 if __name__ == "__main__":
     pyvips.voperation.cache_set_max_mem(2048)
-    stdin = sys.stdin.read()
-    sys.stdout.write(json.dumps(process_image(json.loads(stdin))))
+    stdin_utf8 = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
+    stdin_data = stdin_utf8.read()
+    data = json.loads(stdin_data)
+    sys.stdout.write(json.dumps(process_image(data)))

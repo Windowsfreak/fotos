@@ -9,3 +9,4 @@
 *.iml
 *.json
 config.yml
+/main.exe

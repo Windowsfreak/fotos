@@ -169,7 +169,7 @@ func WalkSubdirectories(files []os.DirEntry, inPrefix string, inFolder string, o
 
 	for _, dirEntry := range files {
 		name := norm.NFC.String(dirEntry.Name())
-		if strings.HasPrefix(name, ".") || !dirEntry.IsDir() {
+		if strings.HasPrefix(name, ".") || !dirEntry.IsDir() || name == "snapshot" {
 			continue
 		}
 
@@ -205,7 +205,7 @@ func GetNonexistentFolders(minDirs []MinDir, dirEntries []fs.DirEntry) []MinDir 
 
 	// Build a map of existing folder names
 	for _, dirEntry := range dirEntries {
-		if dirEntry.IsDir() {
+		if dirEntry.IsDir() && dirEntry.Name() != "snapshot" {
 			name := norm.NFC.String(dirEntry.Name())
 			existingFolders[name] = true
 		}
