@@ -61,7 +61,8 @@ func Decode(filename string, format string) (m image.Image, err error) {
 		".tar", ".rar", ".txt", ".ivp", ".rzs", ".dat", ".tmp", ".mrk", ".acv", ".atn", ".shh", ".bdm", ".tdt", ".tid",
 		".xmp", ".golf", ".pto",
 		".bmp", ".lnk", ".doc", ".7z", ".mp3", ".vcf", ".cpi", ".mpl", ".vpl", ".ai", ".dxf", ".emf", ".eps",
-		".svg", ".stl":
+		".svg", ".stl",
+		".json", ".prproj", ".m4a", ".cfa", ".pek", ".srt":
 		return nil, nil
 	case ".pdf":
 		return DecodePDF(filename)
