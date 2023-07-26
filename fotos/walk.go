@@ -15,6 +15,12 @@ import (
 	"time"
 )
 
+var skippedFolder int64
+var processedFolder int64
+var skippedImg int64
+var processedImg int64
+
+
 func Walk(inPrefix string, inFolder string, outPrefix string, nonce string) <-chan MinDir {
 	result := make(chan MinDir)
 
@@ -55,12 +61,14 @@ func Walk(inPrefix string, inFolder string, outPrefix string, nonce string) <-ch
 	}
 
 	if oldDir.ModTime > domain.Config.LastCompletion {
+		skippedFolder += 1
 		println("skipping " + inFolder)
 		go func() {
 			result <- oldDir.MinDir
 		}()
 		return result
 	}
+	processedFolder += 1
 
 	removedFolders := GetNonexistentFolders(oldDir.Subs, files)
 	for _, folder := range removedFolders {

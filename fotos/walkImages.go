@@ -52,9 +52,14 @@ func WalkFiles(files []fs.DirEntry, imgs []Img, inPrefix string, inFolder string
 			p := hashFile(inFolder+"/"+name, nonce)
 
 			if existingImg, ok := CheckImageAge(file, imgs, name, outPath, p); ok {
+				skippedImg += 1
 				img, err = existingImg, nil
 			} else {
+				processedImg += 1
 				img, err = ConvertWith(inPath+"/"+file.Name(), outPath+"/"+p, file)
+			}
+			if (skippedImg + processedImg) % 1000 == 0 {
+				fmt.Printf("Folders skipped: %d, folders processed: %d, images skipped: %d, images processed: %d, current folder: %s\n", skippedFolder, processedFolder, skippedImg, processedImg, inFolder)
 			}
 			<-imgThreads
 			if err != nil {
@@ -91,7 +96,7 @@ func CheckImageAge(file fs.FileInfo, imgs []Img, name string, outPath string, p 
 	existingImg, ok := FindImg(imgs, name)
 	if ok {
 		if fileInfo, err := os.Stat(outPath + "/" + p + ".o.jxl"); err == nil {
-			return existingImg, fileInfo.ModTime().After(file.ModTime().Add(5 * time.Second))
+			return existingImg, fileInfo.ModTime().Add(5 * time.Second).After(file.ModTime())
 		}
 	}
 	return existingImg, false
