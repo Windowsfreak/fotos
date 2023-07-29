@@ -6,13 +6,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="./node_modules/photoswipe/dist/photoswipe.css">
     <link rel="stylesheet" href="./node_modules/minireset.css/minireset.min.css">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="./style.css">
+    <link rel="icon" type="image/png" href="./favicon.png">
     <script type="module">
-        window.root = './images/Neu/'
+        window.fixCase = input => {
+            const segments = input.split('/')
+            const firstTwoSegments = segments.slice(0, 2).map(part => part.toLowerCase())
+            return firstTwoSegments.concat(segments.slice(2)).join('/')
+        }
+        window.root = '/fotos/'
+        window.oroot = window.root
+        window.hroot = window.root
+        window.sroot = window.root
         window.fixPath = path => encodeURI(path.replace('#', '%23'))
         window.goto = json => {
             const target = event ? event.target : {}, xhr = new XMLHttpRequest()
-            xhr.open('GET', fixPath(root + json) + '.json')
+            xhr.open('GET', fixPath(root + fixCase(json)) + '.json')
             xhr.onload = function () {
                 const arr = [json, this, xhr]
                 if (window.decode) { window.decode(arr) } else window.firstData = arr
@@ -35,6 +44,14 @@
     </script>
 </head>
 <body style="--width: 15%">
+<div id="toolbar">
+    <button class="pswp__button" type="button" title="Fullscreen" onclick="document.getElementById('settings').showModal()">
+        <svg height="32px" width="32px" xmlns="http://www.w3.org/2000/svg"><path d="M4,8h4v4h-4zM10,8h6v6h-6zM18,8h10v10h-10zM32,28V4H0v24h14v2H8v2h16v-2h-6v-2H32z M2,26V6h28v20H2z"/></svg>
+    </button>
+    <button class="pswp__button" type="button" title="Fullscreen" onclick="toggleFullscreen()">
+        <svg height="32px" width="32px" xmlns="http://www.w3.org/2000/svg"><path d="M20,8l8,8V8H20z M4,24h8l-8-8V24zM32,28V4H0v24h14v2H8v2h16v-2h-6v-2H32z M2,26V6h28v20H2z"/></svg>
+    </button>
+</div>
 <h2 id="breadcrumbs"></h2>
 <h4 id="date"></h4>
 <h3 id="folders_head"></h3>
@@ -44,14 +61,16 @@
 <h3 id="files_head"></h3>
 <p id="files"></p>
 <script type="module">
+    window.enableDownload = false
     window.rotate = true
+    let items
+    let lazyItems
+    let lightbox
+    let lazyTimer
 
     import PhotoSwipeLightbox from './node_modules/photoswipe/dist/photoswipe-lightbox.esm.min.js'
-    // Simple fullscreen API
-    const fullscreenAPI = getFullscreenAPI()
-    const pswpContainer = getPswpContainer()
 
-    const original = 'images/'
+    const original = '/original/'
     const knownPaths = {}
     let currentPath
     const setBreadcrumbs = (file, name, c) => {
@@ -98,7 +117,7 @@
     const ctx = canvas.getContext('2d')
     const d = ctx.getImageData(0, 0, canvas.width, canvas.height)
     const background = input => {
-        if (input === '') return 'inherit'
+        if (input === '') return 'linear-gradient(340deg, #222 0%, #666 100%)'
         let j = 0
         for (let i = 0; i < 64; i+=4) {
             const c = alphabet.indexOf(input[j]) * 64 + alphabet.indexOf(input[j + 1])
@@ -127,9 +146,11 @@
         x.h = img.h
         x.name = img.n
         a.style.setProperty('--ratio', `${img.w / img.h}`)
-        a.style.background = background(img.c)
+        if (!img.b) img.b = background(img.c)
+        a.style.background = img.b
         const i = document.createElement('img')
-        i.src = img.t
+        i.src = window.thumbQuality ? img.m : img.s
+        i.alt = i.title = img.n || `shared image (${img.w} x ${img.h})`
         a.append(i)
         return a
     }
@@ -159,28 +180,30 @@
         const subImgs = (folder.k || 0) - (folder.imgs || []).length
         elements.includes('images') && folder.imgs && i.push(plural(folder.imgs.length, 'Foto', 's'))
         const files = !folder.subs && folder.l || (folder.misc && folder.misc.length) || 0
+        elements.includes('folders') && subImgs && i.push(plural(subImgs, 'Foto', 's'))
         elements.includes('files') && files && i.push(plural(files, 'Datei', 'en'))
+        elements.includes('folders') && folder.j && i.push(plural(folder.j, 'Ordner', ''))
         return (i.length ? '<span>' + i.join(', ') + '</span>' : '') +
-            (elements.includes('folders') && folder.j ? `<span>${subImgs ? plural(subImgs, 'Foto', 's') + ' in ' + plural(folder.j, 'Ordner', 'n') : `enthält ${folder.j} Ordner`}</span>` :
-                (elements.includes('folders') && subImgs ? `<span>${plural(subImgs, 'Foto', 's')}</span>` : '')
-            ) + (elements.includes('dates') && folder.r !== 0 ? `<span>${dateRange(folder.o, folder.r)}</span>` : '')
+            (elements.includes('dates') && folder.r !== 0 ? `<span>${dateRange(folder.o, folder.r)}</span>` : '')
     }
     function setFolders(folders) {
         let str = ''
         folders.forEach(folder =>
-            (str += drawBox(`onclick="goto('${folder.p}'); return false" href="#"`, folder.c, folder.n + caption(folder), fixPath(root+folder.i+'.h.jxl')))
+            (str += drawBox(`onclick="goto('${folder.p}'); return false" href="#"`, folder.c, folder.n + caption(folder), fixPath(sroot+fixCase(folder.i)+'.s.jxl')))
         )
         document.getElementById('folders').innerHTML = str
     }
-    function impl3(path, imgs, json) {
-        const images = []
+    function setItems(path, imgs, json) {
+        items = []
         imgs.forEach(img => {
-            images.push({
-                srcset: `${fixPath(root+path+'/'+img.p)}.o.jxl ${img.w}w, ${fixPath(root+path+'/'+img.p)}.h.jxl ${Math.min(2048, img.w)}w, ${fixPath(root+path+'/'+img.p)}.s.jxl ${Math.min(400, img.w)}w`,
-                src: fixPath(root+path+'/'+img.p) + '.h.jxl',
+            const p = fixCase(path)
+            items.push({
+                src: fixPath(oroot+p+'/'+img.p) + '.o.jxl',
                 download: fixPath(original+json.n+'/'+img.n+"?proof="+json.q+img.p),
                 c: img.c,
-                t: fixPath(root+path+'/'+img.p) + '.s.jxl',
+                s: fixPath(sroot+p+'/'+img.p) + '.s.jxl',
+                m: fixPath(hroot+p+'/'+img.p) + '.h.jxl',
+                o: fixPath(oroot+p+'/'+img.p) + '.o.jxl',
                 n: img.n,
                 d: img.d,
                 w: img.w,
@@ -189,15 +212,30 @@
                 p: [path, img.p]
             })
         })
-        window.items = images
-        window.lazyItems = [...images]
+        resetThumbnails()
+    }
+    window.resetThumbnails = () => {
+        lazyItems = [...items]
         const parent = document.getElementById('images')
         parent.replaceChildren()
-        addMoreImages(parent, 10)
+        addMoreImages(parent, 20)
     }
+
+    window.lazyLoad = () => {
+        const imagesElement = document.getElementById('images')
+        const viewportHeight = window.innerHeight
+        const { bottom: elementBottom } = imagesElement.getBoundingClientRect()
+
+        const threshold = viewportHeight * 2
+
+        if (elementBottom < threshold) {
+            addMoreImages(imagesElement, 20)
+        }
+    }
+
     function addMoreImages(parent, amount) {
-        if (!window.lazyItems || !window.lazyItems.length) return
-        const imgs = window.lazyItems.splice(0, amount)
+        if (!lazyItems || !lazyItems.length) return
+        const imgs = lazyItems.splice(0, amount)
         if (!imgs.length) return
         const images = []
         imgs.forEach(img => {
@@ -206,57 +244,33 @@
         parent.append(...images)
         lazyLoad()
     }
-    const lazyLoad = () => {
-        const imagesElement = document.getElementById('images')
-        const viewportHeight = window.innerHeight
-        const { bottom: elementBottom } = imagesElement.getBoundingClientRect()
-
-        const threshold = viewportHeight * 1.5
-
-        if (elementBottom < threshold) {
-            addMoreImages(imagesElement, 10)
-        }
-    }
 
     window.addEventListener('resize', lazyLoad)
     window.addEventListener('scroll', lazyLoad)
-
     lazyLoad()
     function setImages(path, imgs, json) {
-        impl3(path, imgs, json)
+        setItems(path, imgs, json)
 
         const galleryEl = document.getElementById('images')
-        window.lightbox = new PhotoSwipeLightbox({
+        lightbox = new PhotoSwipeLightbox({
             dataSource: items,
             pswpModule: () => import('./node_modules/photoswipe/dist/photoswipe.esm.js'),
-
-            // Add function that returns promise
-            openPromise: getFullscreenPromise,
-
-            // Append PhotoSwipe to our container
-            appendToEl: fullscreenAPI ? pswpContainer : document.body,
 
             // disable opening/closing animations
             showAnimationDuration: 0,
             hideAnimationDuration: 0,
 
-            imageClickAction: 'toggle-controls'
-            // Add if you're using responsive images since viewport size is unpredictable at initialization:
-            // preloadFirstSlide: false
+            wheelToZoom: true
         })
-        window.lightbox.addFilter('thumbEl', (thumbEl, data, index) => {
+        lightbox.addFilter('thumbEl', (thumbEl, data, index) => {
             const el = galleryEl.querySelector('[data-id="' + data.id + '"] img')
             if (el) return el
             return thumbEl
         })
-        window.lightbox.addFilter('placeholderSrc', (placeholderSrc, slide) => {
-            console.log(slide)
-            return slide.data.t
-            /*const el = galleryEl.querySelector('[data-id="' + slide.data.id + '"] img')
-            if (el) return el.src
-            return placeholderSrc*/
+        lightbox.addFilter('placeholderSrc', (placeholderSrc, slide) => {
+            return undefined
         })
-        window.lightbox.addFilter('itemData', (data, index) => {
+        lightbox.addFilter('itemData', (data, index) => {
             if (window.rotate && data.n.toLowerCase().includes('pano') && data.w === data.h * 2) {
                 return {...data, src: undefined,
                     html: `
@@ -269,9 +283,59 @@
             }
             return data
         })
-        window.lightbox.on('uiRegister', function() {
+        lightbox.on('contentLoad', (e) => {
+            const {content, isLazy} = e
+            const data = content.data
+            if (data.o) {
+                if (!data.b) data.b = background(data.c)
+                const aspectRatio = `${data.w} / ${data.h}`
+                e.preventDefault()
+                const b = document.createElement('div')
+                b.className = 'pswp__img'
+                b.style.background = data.b
+                b.style.aspectRatio = aspectRatio
+
+                const s = document.createElement('div')
+                s.style.backgroundImage = `url(${data.s})`
+                s.style.backgroundSize = '100% 100%'
+                s.style.aspectRatio = aspectRatio
+                b.appendChild(s)
+
+                const m = document.createElement('div')
+                m.style.backgroundImage = `url(${data.m})`
+                m.style.backgroundSize = '100% 100%'
+                m.style.aspectRatio = aspectRatio
+                s.appendChild(m)
+
+                content.element = b
+                content.m = m
+                content.state = 'loaded'
+            }
+        })
+        lightbox.on('contentActivate', ({ content }) => {
+            slideShown(content)
+            content.onLoaded()
+        })
+        lightbox.on('contentDeactivate', ({ content }) => {
+            slideHidden(content)
+        })
+        lightbox.on('contentAppend', (e) => {
+            const { content } = e
+            if (content.element && !content.element.parentNode) {
+                e.preventDefault()
+                content.slide.container.appendChild(content.element)
+            }
+        })
+        lightbox.on('contentRemove', (e) => {
+            const { content } = e
+            if (content.element && content.element.parentNode) {
+                e.preventDefault()
+                content.element.remove()
+            }
+        })
+        lightbox.on('uiRegister', function() {
             if (window.singleImage) return
-            lightbox.pswp.ui.registerElement({
+            if (enableDownload) lightbox.pswp.ui.registerElement({
                 name: 'download-button',
                 order: 8,
                 isButton: true,
@@ -292,7 +356,7 @@
                         el.href = pswp.currSlide.data.download
                     })
                 }
-            });
+            })
             lightbox.pswp.ui.registerElement({
                 name: 'share-button',
                 order: 11,
@@ -308,12 +372,29 @@
                 },
 
                 onInit: (el, pswp) => {
-                    el.setAttribute('download', '')
-                    el.setAttribute('target', '_blank')
-                    el.setAttribute('rel', 'noopener')
-
                     pswp.on('change', () => {
+                        if (!enableDownload) {
+                            document.getElementById('share-download-link').disabled = true
+                        }
                         el.onclick = () => { document.getElementById('sharer').showModal() }
+                    })
+                }
+            })
+            lightbox.pswp.ui.registerElement({
+                name: 'settings-button',
+                order: 11,
+                isButton: true,
+                tagName: 'a',
+
+                html: {
+                    isCustomSVG: true,
+                    inner: `<path d="M4,8h4v4h-4zM10,8h6v6h-6zM18,8h10v10h-10zM32,28V4H0v24h14v2H8v2h16v-2h-6v-2H32z M2,26V6h28v20H2z"/>`,
+                    outlineID: 'pswp__icn-settings'
+                },
+
+                onInit: (el, pswp) => {
+                    pswp.on('change', () => {
+                        el.onclick = () => { document.getElementById('settings').showModal() }
                     })
                 }
             })
@@ -332,17 +413,17 @@
                 }
             })
         })
-        window.lightbox.on('close', () => {
-            pswpContainer.style.display = 'none'
-            if (fullscreenAPI && fullscreenAPI.isFullscreen()) fullscreenAPI.exit()
+        lightbox.on('destroy', () => {
+            const el = document.getElementById('images').querySelector('[data-id="' + lightbox.pswp.currSlide.data.id + '"] img')
+            if (el != null) el.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'nearest'})
         })
-        window.lightbox.init()
+        lightbox.init()
     }
     const openImage = event => {
         let elm = event.target
         while (elm && elm.className !== 'item') elm = elm.parentElement
         if (!elm) return
-        window.lightbox.loadAndOpen(Array.prototype.indexOf.call(elm.parentElement.children, elm))
+        lightbox.loadAndOpen(Array.prototype.indexOf.call(elm.parentElement.children, elm))
         return false
     }
     document.getElementById('images').onclick = openImage
@@ -377,108 +458,101 @@
     }
     window.onhashchange = update
 
-    function getFullscreenPromise() {
-        // Always resolve promise, as we want to open lightbox (no matter if fullscreen is supported or not)
-        return new Promise((resolve) => {
-            if (!fullscreenAPI || fullscreenAPI.isFullscreen()) {
-                // fullscreen API not supported, or already fullscreen
-                resolve()
-                return
-            }
-
-            document.addEventListener(fullscreenAPI.change, (event) => {
-                pswpContainer.style.display = 'block'
-                // delay to make sure that browser fullscreen animation is finished
-                setTimeout(() => resolve(), 300)
-            }, { once: true })
-
-            fullscreenAPI.request(pswpContainer)
-        })
-    }
-
-    function getFullscreenAPI() {
+    window.toggleFullscreen = () => {
         if (document.documentElement.requestFullscreen) {
-            return {
-                request(el) {
-                    el.requestFullscreen()
-                },
-                exit() {
-                    return document.exitFullscreen()
-                },
-                isFullscreen() {
-                    return document.fullscreenElement
-                },
-                change: 'fullscreenchange',
-                error: 'fullscreenerror'
+            if (document.fullscreenElement) {
+                return document.exitFullscreen()
+            } else {
+                document.documentElement.requestFullscreen()
             }
         }
     }
+    window.slideShown = (content, delay = 1000) => {
+        if (lazyTimer) {
+            window.clearTimeout(lazyTimer)
+        }
+        if (window.maxQuality) {
+            lazyTimer = window.setTimeout(() => {
+                if (content.m.childElementCount === 0) {
+                    const h = document.createElement('div')
+                    h.style.backgroundImage = `url(${content.data.o})`
+                    h.style.backgroundSize = '100% 100%'
+                    h.style.aspectRatio = content.m.style.aspectRatio
 
-    function getPswpContainer() {
-        const c = document.createElement('div')
-        c.style.background = '#000'
-        c.style.width = '100%'
-        c.style.height = '100%'
-        c.style.display = 'none'
-        document.body.append(c)
-        return c
+                    content.m.appendChild(h)
+                }
+            }, delay)
+        }
     }
+    window.slideHidden = content => {
+        if (lazyTimer) {
+            window.clearTimeout(lazyTimer)
+        }
+        if (content.m.childElementCount !== 0) {
+            content.m.removeChild(content.m.lastChild)
+        }
+    }
+
 </script>
 <script>
     function setPreviewWidth() {
-        document.body.style.setProperty('--width', document.getElementById('preview-width').value + '%')
-    }
-    function setFullscreen() {
-
-    }
-    function setHide() {
-
+        const sizes = [100, 30, 20, 15, 12, 10, 9, 8, 7, 6.2, 5.4, 4.4]
+        const estimate = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15]
+        const choice = document.getElementById('preview-width').value
+        document.getElementById('better-thumbnails').disabled = choice > 5
+        if (choice > 5) {
+            if (window.thumbQuality) {
+                document.getElementById('better-thumbnails').checked = false
+                setThumbQuality()
+            }
+        }
+        document.body.style.setProperty('--width', sizes[choice] + '%')
+        document.getElementById('preview-width-estimate').innerText = '' + estimate[choice]
+        lazyLoad()
     }
     function setRotate() {
         window.rotate = document.getElementById('rotate').checked
     }
+    function setMaxQuality() {
+        window.maxQuality = document.getElementById('max-quality').checked
+        if (window.pswp?.currSlide?.content) {
+            if (window.maxQuality) {
+                window.slideShown(window.pswp.currSlide.content, 0)
+            } else {
+                window.slideHidden(window.pswp.currSlide.content)
+            }
+        }
+    }
+    function setThumbQuality() {
+        window.thumbQuality = document.getElementById('better-thumbnails').checked
+        resetThumbnails()
+    }
 </script>
 <dialog id="settings">
     <form method="dialog">
-        Ansicht
+        <b>Gallery settings</b><br><br>
         <label>
-            Vorschaugröße:<br />
-            <input type="range" id="preview-width" min="5" max="60" value="15" onchange="setPreviewWidth()">
-            <!-- document.body.style.setProperty('--width', '15%') -->
+            Images per row: <span id="preview-width-estimate">4</span><br>
+            <input type="range" id="preview-width" min="0" max="11" value="3" onchange="setPreviewWidth()">
         </label>
-        <label>
-            <input type="checkbox" name="rotate" onchange="setFullscreen()">
-            Immer im Vollbild
-        </label>
-        <label>
-            <input type="checkbox" name="hide" onchange="setHide()">
-            Bei Antippen Menü ausblenden
-        </label>
+        <br>
         <label>
             <input type="checkbox" id="rotate" onchange="setRotate()">
-            360º-Bilder automatisch drehen
-        </label>
-        Bildqualität
-        <label>
-            <input type="radio" name="quality-option" value="link" onchange="setImgQuality(0)">
-            Automatisch
+            Rotate 360º views
         </label>
         <br>
         <label>
-            <input type="radio" name="quality-option" value="gallery" onchange="setImgQuality(1)">
-            Normal (Mobil)
+            <input type="checkbox" id="max-quality" onchange="setMaxQuality()">
+            Better quality
         </label>
         <br>
         <label>
-            <input type="radio" name="quality-option" value="image" onchange="setImgQuality(2)">
-            Immer hohe Qualität
+            <input type="checkbox" id="better-thumbnails" onchange="setThumbQuality()">
+            Better previews
         </label>
         <br>
-        <label>
-            <input type="checkbox" name="quality-thumbnails" onchange="setThumbQuality()">
-            Vorschau in hoher Qualität
-        </label>
-        <button type="reset" onclick="resetSharer()">Schließen</button>
+        <br>
+        <button onclick="document.getElementById('settings').close()">OK</button>
     </form>
 </dialog>
 <dialog id="sharer">
@@ -494,7 +568,7 @@
         </label>
         <br>
         <label>
-            <input type="radio" name="share-option" value="link" onchange="copyLink(window.location.origin + window.location.pathname.replace('index.html', '') + pswp.currSlide.data.download)">
+            <input type="radio" name="share-option" value="link" id="share-download-link" onchange="copyLink(window.location.origin + window.location.pathname.replace('index.html', '') + pswp.currSlide.data.download)">
             Originaldatei
         </label>
         <br>
@@ -529,13 +603,14 @@
         document.getElementById('sharer').close()
         copyButton.innerText = "Kopieren"
     }
-    const testImage = new Image();
+    const testImage = new Image()
     testImage.onerror = function() {
-        const par = document.createElement('p');
-        par.innerHTML = 'Laden die Bilder nicht? Dann hole dir jetzt <a href="https://thorium.rocks/">Thorium</a>, den JPEG-XL-fähigen Browser für alle Geräte außer iPhone.';
-        document.body.append(par);
-    };
-    testImage.src = 'data:image/jxl;base64,/woAEAwkxY0AUxVIAJQAARAAAAAAYcNHAQAAVKiMMm7wcq7nyw8dFtM2rjO01baFJYyJZ4CFhEJiBA2GGAOVQAkA';
+        const par = document.createElement('p')
+        par.innerHTML = 'Please come back if you have <a href="https://thorium.rocks/">Thorium</a>, a JPEG-XL capable web browser for all devices except iPhone.'
+        document.body.insertBefore(par, document.body.firstChild)
+    }
+    testImage.src = 'data:image/jxl;base64,/woAEAwkxY0AUxVIAJQAARAAAAAAYcNHAQAAVKiMMm7wcq7nyw8dFtM2rjO01baFJYyJZ4CFhEJiBA2GGAOVQAkA'
+    document.getElementById('max-quality').disabled = true
 </script>
 </body>
 </html>

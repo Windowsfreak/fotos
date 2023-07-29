@@ -7,6 +7,16 @@ body {
     font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     --width: 15%;
 }
+#toolbar {
+    position: fixed;
+    right: 0;
+    z-index: 1;
+    fill: white;
+    background: #000
+}
+#toolbar button {
+    float: left
+}
 h2 {
     font-size: 2em;
 }
@@ -118,6 +128,19 @@ h3:not(:empty):after {
     left: 50%;
     bottom: 0;
     transform: translateX(-50%);
+}
+
+div.pswp__img {
+    font-size: 0
+}
+
+div.pswp__img * {
+    pointer-events: none
+}
+
+label:has(> :is([disabled],[readonly])) {
+    color: rgba(0,0,0,0.54);
+    text-decoration: line-through;
 }
 
 .cylinder {
