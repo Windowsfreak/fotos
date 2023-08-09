@@ -86,3 +86,24 @@ environment variables or `SET CGO_ENABLED=1`
 - Run `./main`.
 
 > ***<span style="color:red !important">This tool can delete folders and files so carefully check your config.yml file</span>***
+
+**Linux instructions:**
+
+- Run this:
+  ```shell
+  go get github.com/nomad-software/vend
+  cd ~/go/pkg/mod/github.com/nomad-software/vend\@v1.0.3/
+  go build
+  cd ~/projects/fotos
+  go mod vendor
+  ~/go/pkg/mod/github.com/nomad-software/vend\@v1.0.3/vend
+  sudo apt-get install build-essential
+  go build fotos/fotos/main
+  sudo apt install dcraw
+  sudo apt install mupdf-tools
+  sudo apt install ffmpeg
+  sudo apt install libjxl-tools
+  sudo apt install libimage-exiftool-perl
+  ```
+- Install python3 and pip and install all dependencies until you run `image_processor.py`
+  with it just reading from system input
